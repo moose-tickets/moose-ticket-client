@@ -1,0 +1,95 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "fullName": "Jane Doe",
+      "email": "jane@example.com",
+      "password": "12345678",
+      "licenseNumber": "ON1234567",
+      "createdAt": "2024-10-01T12:00:00Z"
+    },
+    {
+      "id": "u2",
+      "fullName": "John Smith",
+      "email": "john@example.com",
+      "password": "hashed-password",
+      "licenseNumber": "ON9876543",
+      "createdAt": "2025-01-15T08:30:00Z"
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "v1",
+      "userId": "u1",
+      "plateNumber": "ABC123",
+      "type": "Sedan",
+      "make": "Toyota",
+      "model": "Camry",
+      "year": 2020
+    },
+    {
+      "id": "v2",
+      "userId": "u2",
+      "plateNumber": "XYZ789",
+      "type": "SUV",
+      "make": "Honda",
+      "model": "CR-V",
+      "year": 2021
+    }
+  ],
+  "tickets": [
+    {
+      "id": "t1",
+      "userId": "u1",
+      "vehicleId": "v1",
+      "type": "Parking Violation",
+      "status": "unpaid",
+      "amount": 75,
+      "city": "Toronto",
+      "issuedAt": "2025-06-05T10:15:00Z",
+      "dueDate": "2025-06-19T23:59:59Z"
+    },
+    {
+      "id": "t2",
+      "userId": "u2",
+      "vehicleId": "v2",
+      "type": "Speeding",
+      "status": "paid",
+      "amount": 120,
+      "city": "Mississauga",
+      "issuedAt": "2025-05-01T14:22:00Z",
+      "dueDate": "2025-05-15T23:59:59Z"
+    }
+  ],
+  "payments": [
+    {
+      "id": "p1",
+      "userId": "u2",
+      "ticketId": "t2",
+      "method": "Credit Card",
+      "cardLast4": "4242",
+      "status": "success",
+      "paidAt": "2025-05-02T09:45:00Z"
+    }
+  ],
+  "cards": [
+    {
+      "id": "c1",
+      "userId": "u2",
+      "brand": "Visa",
+      "last4": "4242",
+      "expiry": "12/26",
+      "isDefault": true,
+      "expired": false
+    },
+    {
+      "id": "c2",
+      "userId": "u1",
+      "brand": "Mastercard",
+      "last4": "1111",
+      "expiry": "01/23",
+      "isDefault": false,
+      "expired": true
+    }
+  ]
+}
