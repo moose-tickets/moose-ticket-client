@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-06-12T19:16:16.652Z",
+  "totalEnvironments": 1,
+  "passedEnvironments": 0,
+  "failedEnvironments": 1,
+  "results": {
+    "development": {
+      "success": false,
+      "healthCheck": false,
+      "error": "Backend health check failed"
+    }
+  },
+  "recommendations": [
+    "Review failed tests and check backend service connectivity"
+  ]
+}

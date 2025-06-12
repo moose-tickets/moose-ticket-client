@@ -3,7 +3,17 @@ module.exports = function(api) {
   api.cache(true);
   return {
      presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      [
+        "babel-preset-expo", 
+        { 
+          jsxImportSource: "nativewind",
+          // Ensure proper environment variable inlining
+          env: {
+            development: {},
+            production: {}
+          }
+        }
+      ],
       "nativewind/babel",
     ],
     plugins: [
@@ -16,7 +26,13 @@ module.exports = function(api) {
           },
         },
       ],
-      ["transform-inline-environment-variables"],
+      [
+        "transform-inline-environment-variables",
+        {
+          // Ensure EXPO_OS and other environment variables are properly inlined
+          include: ["EXPO_OS", "NODE_ENV", "__DEV__"]
+        }
+      ],
     ],
   };
 };

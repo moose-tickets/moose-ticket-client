@@ -1,16 +1,40 @@
 // src/services/arcjetSecurity.ts
 import Constants from "expo-constants";
 
-let Arcjet: any;
-try {
-  // Attempt to require the Arcjet SDK; if it isn't installed, catch the error
-  Arcjet = require("arcjet");
-} catch (e) {
-  console.warn(
-    "⚠️ arcjet package not found. Security features will be disabled.",
-    e
-  );
-}
+let Arcjet: any = null;
+
+const loadArcjet = () => {
+  if (Arcjet !== null) return Arcjet;
+  
+  try {
+    // Try React Native compatible import first
+    Arcjet = require("@arcjet/react-native");
+    return Arcjet;
+  } catch (e1) {
+    try {
+      // Fallback to Node.js SDK  
+      Arcjet = require("@arcjet/node");
+      return Arcjet;
+    } catch (e2) {
+      try {
+        // Fallback to main package
+        Arcjet = require("arcjet");
+        return Arcjet;
+      } catch (e3) {
+        // Safely handle the case where no Arcjet package is available
+        const errorMessage = e3?.message || 'Unknown import error';
+        if (!errorMessage.includes('slice')) {
+          console.warn("⚠️ Arcjet package not found. Security features will be disabled.");
+        }
+        Arcjet = false; // Mark as unavailable
+        return null;
+      }
+    }
+  }
+};
+
+// Initialize Arcjet
+loadArcjet();
 
 // Security types
 export type BotContext = { 
@@ -82,8 +106,11 @@ class ArcjetSecurity {
   private static isInitialized = false;
 
   static initialize() {
-    if (!Arcjet) {
+    if (!Arcjet || Arcjet === false) {
       console.warn("Arcjet not available - security features disabled");
+      if (__DEV__) {
+        console.log("🔒 Running in development mode without Arcjet security");
+      }
       return;
     }
     
@@ -147,7 +174,7 @@ class ArcjetSecurity {
   }
 
   static isAvailable(): boolean {
-    return !!Arcjet && ArcjetSecurity.isInitialized;
+    return !!(Arcjet && Arcjet !== false && ArcjetSecurity.isInitialized);
   }
 
   // Enhanced bot detection

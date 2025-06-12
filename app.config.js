@@ -47,7 +47,9 @@ export default {
     extra: {
       ARCHET_API_KEY: process.env.ARCHET_API_KEY,
       API_URL: process.env.API_URL,
-      
+      EXPO_OS: process.env.EXPO_OS || "android",
+      NODE_ENV: process.env.NODE_ENV || "development",
+      __DEV__: process.env.NODE_ENV !== "production"
     },
 
     // Any Expo plugins you need
