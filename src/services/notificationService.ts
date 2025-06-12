@@ -24,6 +24,9 @@ const NOTIFICATION_ENDPOINTS = {
   MARK_ALL_READ: '/notifications/mark-all-read',
   UNREAD_COUNT: '/notifications/unread-count',
   SETTINGS: '/notifications/settings',
+  TEMPLATES: '/notifications/templates',
+  DELIVERY_LOGS: '/notifications/delivery-logs',
+  PREFERENCES: '/notifications/preferences',
 } as const;
 
 class NotificationService {
@@ -503,6 +506,200 @@ class NotificationService {
         success: false,
         error: 'Network error',
         message: 'Unable to send test notification. Please try again.'
+      };
+    }
+  }
+
+  // Template and Delivery Management
+  async getNotificationTemplates(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any[]>>(
+        NOTIFICATION_ENDPOINTS.TEMPLATES
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get notification templates error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get templates',
+        message: 'Unable to retrieve notification templates.'
+      };
+    }
+  }
+
+  async getDeliveryLogs(params?: PaginationParams & { 
+    dateFrom?: string; 
+    dateTo?: string; 
+    status?: string; 
+  }): Promise<ApiResponse<any[]>> {
+    try {
+      const sanitizedParams: any = {};
+      
+      if (params?.page) sanitizedParams.page = Math.max(1, parseInt(String(params.page)));
+      if (params?.limit) sanitizedParams.limit = Math.min(100, Math.max(1, parseInt(String(params.limit))));
+      if (params?.dateFrom) sanitizedParams.dateFrom = params.dateFrom;
+      if (params?.dateTo) sanitizedParams.dateTo = params.dateTo;
+      if (params?.status) sanitizedParams.status = params.status;
+
+      const response = await apiClient.get<ApiResponse<any[]>>(
+        NOTIFICATION_ENDPOINTS.DELIVERY_LOGS,
+        { params: sanitizedParams }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get delivery logs error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get delivery logs',
+        message: 'Unable to retrieve delivery logs.'
+      };
+    }
+  }
+
+  async getUserPreferences(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>(
+        NOTIFICATION_ENDPOINTS.PREFERENCES
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get user preferences error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get preferences',
+        message: 'Unable to retrieve user notification preferences.'
+      };
+    }
+  }
+
+  async updateUserPreferences(preferences: any): Promise<ApiResponse<any>> {
+    try {
+      const sanitizedData = sanitizeFormData(preferences, {
+        email: (val: boolean) => val,
+        sms: (val: boolean) => val,
+        push: (val: boolean) => val,
+        frequency: (val: string) => val.trim(),
+        timezone: (val: string) => val.trim(),
+      });
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.PROFILE_UPDATE,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.put<ApiResponse<any>>(
+        NOTIFICATION_ENDPOINTS.PREFERENCES,
+        sanitizedData
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Update user preferences error:', error);
+      
+      return {
+        success: false,
+        error: 'Update failed',
+        message: 'Unable to update notification preferences. Please try again.'
+      };
+    }
+  }
+
+  // Bulk operations
+  async markMultipleAsRead(notificationIds: string[]): Promise<ApiResponse<any>> {
+    try {
+      if (!notificationIds || notificationIds.length === 0) {
+        return {
+          success: false,
+          error: 'No notifications selected',
+          message: 'Please select at least one notification.'
+        };
+      }
+
+      const sanitizedData = {
+        notificationIds: notificationIds.map(id => id.trim()),
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.FORM_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.patch<ApiResponse<any>>(
+        '/notifications/bulk-read',
+        sanitizedData
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Mark multiple as read error:', error);
+      
+      return {
+        success: false,
+        error: 'Bulk update failed',
+        message: 'Unable to mark notifications as read. Please try again.'
+      };
+    }
+  }
+
+  async deleteMultiple(notificationIds: string[]): Promise<ApiResponse<any>> {
+    try {
+      if (!notificationIds || notificationIds.length === 0) {
+        return {
+          success: false,
+          error: 'No notifications selected',
+          message: 'Please select at least one notification to delete.'
+        };
+      }
+
+      const sanitizedData = {
+        notificationIds: notificationIds.map(id => id.trim()),
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.FORM_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.delete<ApiResponse<any>>(
+        '/notifications/bulk-delete',
+        { data: sanitizedData }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Delete multiple notifications error:', error);
+      
+      return {
+        success: false,
+        error: 'Bulk delete failed',
+        message: 'Unable to delete notifications. Please try again.'
       };
     }
   }

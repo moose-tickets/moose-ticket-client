@@ -28,11 +28,13 @@ import {
 } from "../utils/sanitize";
 
 const USER_ENDPOINTS = {
-  PROFILE: '/user/profile',
-  PREFERENCES: '/user/preferences',
-  ADDRESSES: '/user/addresses',
-  AVATAR: '/user/avatar',
-  DELETE_ACCOUNT: '/user/delete',
+  PROFILE: '/users/profile',
+  PREFERENCES: '/users/preferences', 
+  ADDRESSES: '/users/addresses',
+  AVATAR: '/users/avatar',
+  DELETE_ACCOUNT: '/users/delete',
+  EXPORT: '/users/export',
+  ANALYTICS: '/users/analytics',
 } as const;
 
 class UserService {
@@ -617,6 +619,75 @@ class UserService {
         success: false,
         error: 'Network error',
         message: 'Unable to delete account. Please try again.'
+      };
+    }
+  }
+
+  // Analytics and Export
+  async getAnalytics(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>(USER_ENDPOINTS.ANALYTICS);
+      return response.data;
+    } catch (error: any) {
+      console.error('Get analytics error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get analytics',
+        message: 'Unable to retrieve analytics data.'
+      };
+    }
+  }
+
+  async exportUserData(format: 'json' | 'csv' = 'json'): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(
+        USER_ENDPOINTS.EXPORT,
+        { format }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Export user data error:', error);
+      
+      return {
+        success: false,
+        error: 'Export failed',
+        message: 'Unable to export user data. Please try again.'
+      };
+    }
+  }
+
+  // User activity and statistics
+  async getUserActivity(timeRange?: string): Promise<ApiResponse<any>> {
+    try {
+      const params = timeRange ? { timeRange } : {};
+      const response = await apiClient.get<ApiResponse<any>>(
+        '/users/activity',
+        { params }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get user activity error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get activity',
+        message: 'Unable to retrieve user activity.'
+      };
+    }
+  }
+
+  async getUserStats(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>('/users/stats');
+      return response.data;
+    } catch (error: any) {
+      console.error('Get user stats error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get stats',
+        message: 'Unable to retrieve user statistics.'
       };
     }
   }

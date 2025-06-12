@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { View, Text, Switch } from 'react-native';
 import { useColorScheme } from 'nativewind';
-import { useAppSelector, useAppDispatch } from '../../redux/store';
-import { selectTheme, toggleTheme } from '../../redux/appSlice';
+import { useAppSelector, useAppDispatch } from '../../store';
+import { selectTheme, toggleTheme } from '../../store/slices/appSlice';
 
 export default function ToggleScreen() {
   const [isEnabled, setIsEnabled] = useState(false);

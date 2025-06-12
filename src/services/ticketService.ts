@@ -31,6 +31,9 @@ const TICKET_ENDPOINTS = {
   TICKET_DETAIL: (id: string) => `/tickets/${id}`,
   TICKET_PAY: (id: string) => `/tickets/${id}/pay`,
   TICKET_DISPUTE: (id: string) => `/tickets/${id}/dispute`,
+  TICKET_EXPORT: '/tickets/export',
+  TICKET_STATS: '/tickets/stats',
+  TICKET_SUMMARY: '/tickets/summary',
   DISPUTES: '/disputes',
   DISPUTE_DETAIL: (id: string) => `/disputes/${id}`,
   PAYMENTS: '/payments',
@@ -731,6 +734,190 @@ class TicketService {
         success: false,
         error: 'Upload failed',
         message: 'Unable to upload evidence. Please try again.'
+      };
+    }
+  }
+
+  // Ticket Analytics and Export
+  async getTicketStats(timeRange?: string): Promise<ApiResponse<any>> {
+    try {
+      const params = timeRange ? { timeRange } : {};
+      const response = await apiClient.get<ApiResponse<any>>(
+        TICKET_ENDPOINTS.TICKET_STATS,
+        { params }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get ticket stats error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get stats',
+        message: 'Unable to retrieve ticket statistics.'
+      };
+    }
+  }
+
+  async getTicketSummary(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>(TICKET_ENDPOINTS.TICKET_SUMMARY);
+      return response.data;
+    } catch (error: any) {
+      console.error('Get ticket summary error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get summary',
+        message: 'Unable to retrieve ticket summary.'
+      };
+    }
+  }
+
+  async exportTickets(format: 'json' | 'csv' | 'pdf' = 'json', filters?: TicketFilters): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(
+        TICKET_ENDPOINTS.TICKET_EXPORT,
+        { format, filters }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Export tickets error:', error);
+      
+      return {
+        success: false,
+        error: 'Export failed',
+        message: 'Unable to export tickets. Please try again.'
+      };
+    }
+  }
+
+  // Government API Integration
+  async lookupTicketFromGovernment(ticketNumber: string, jurisdiction: string): Promise<ApiResponse<any>> {
+    try {
+      const sanitizedData = {
+        ticketNumber: ticketNumber.trim().toUpperCase(),
+        jurisdiction: jurisdiction.trim().toUpperCase(),
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.SEARCH_QUERY,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.post<ApiResponse<any>>(
+        '/tickets/lookup-government',
+        sanitizedData
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Government ticket lookup error:', error);
+      
+      return {
+        success: false,
+        error: 'Lookup failed',
+        message: 'Unable to lookup ticket from government database.'
+      };
+    }
+  }
+
+  // Bulk operations
+  async bulkUpdateTickets(ticketIds: string[], updates: Partial<UpdateTicketRequest>): Promise<ApiResponse<any>> {
+    try {
+      if (!ticketIds || ticketIds.length === 0) {
+        return {
+          success: false,
+          error: 'No tickets selected',
+          message: 'Please select at least one ticket to update.'
+        };
+      }
+
+      const sanitizedData = {
+        ticketIds: ticketIds.map(id => id.trim()),
+        updates: updates,
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.FORM_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.patch<ApiResponse<any>>(
+        '/tickets/bulk-update',
+        sanitizedData
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Bulk update tickets error:', error);
+      
+      return {
+        success: false,
+        error: 'Bulk update failed',
+        message: 'Unable to update selected tickets. Please try again.'
+      };
+    }
+  }
+
+  async bulkDeleteTickets(ticketIds: string[]): Promise<ApiResponse<any>> {
+    try {
+      if (!ticketIds || ticketIds.length === 0) {
+        return {
+          success: false,
+          error: 'No tickets selected',
+          message: 'Please select at least one ticket to delete.'
+        };
+      }
+
+      const sanitizedData = {
+        ticketIds: ticketIds.map(id => id.trim()),
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.FORM_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.delete<ApiResponse<any>>(
+        '/tickets/bulk-delete',
+        { data: sanitizedData }
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Bulk delete tickets error:', error);
+      
+      return {
+        success: false,
+        error: 'Bulk delete failed',
+        message: 'Unable to delete selected tickets. Please try again.'
       };
     }
   }

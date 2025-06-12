@@ -5,10 +5,10 @@ import * as SecureStore from "expo-secure-store";
 import ArcjetSecurity from "./arcjetSecurity";
 import ErrorHandlerService from "./errorHandlerService";
 
-// Base configuration
+// Base configuration - Updated for backend integration
 const BASE_URL = __DEV__ 
-  ? "http://localhost:3000/api"  // Development URL
-  : "https://api.my-mooseticket.com"; // Production URL
+  ? "http://localhost:3000/api"  // Development URL (API Gateway)
+  : "https://api.mooseticket.com/api"; // Production URL
 
 const API_TIMEOUT = 30000; // 30 seconds
 

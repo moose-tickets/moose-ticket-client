@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
 import AddressForm from '../../components/Address';
@@ -10,12 +10,25 @@ import Dialog from '../../components/Dialog';
 import Payments from '../../components/Payments';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { createSubscription, updateSubscription } from '../../store/slices/subscriptionSlice';
 
 export default function ConfirmSubscription() {
   const navigation = useSettingsStackNavigation();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
   const route = useRoute<RouteProp<SettingsStackParamList, 'ConfirmSubscription'>>();
   const planId = route.params.planId;
+  
+  // Redux state
+  const selectedPlan = useAppSelector(state => state.subscriptions.selectedPlan);
+  const currentSubscription = useAppSelector(state => state.subscriptions.currentSubscription);
+  const loading = useAppSelector(state => state.subscriptions.loading);
+  const error = useAppSelector(state => state.subscriptions.error);
+  
+  // Form state
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
+  const [paymentMethodId, setPaymentMethodId] = useState<string>('');
   const [billingAddress, setBillingAddress] = useState({
     fullName: '',
     address: '',
@@ -29,17 +42,82 @@ export default function ConfirmSubscription() {
     message: '',
     type: 'info' as 'success' | 'error' | 'info' | 'warning',
   });
-
   const [dialogVisible, setDialogVisible] = useState(false);
 
-  const handleConfirm = () => {
-    setDialogProps({
-      title: 'Subscribed!',
-      message:
-        'Your dispute has been submitted successfully and is now under review.',
-      type: 'success',
-    });
-    setDialogVisible(true);
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      setDialogProps({
+        title: 'Error',
+        message: error,
+        type: 'error',
+      });
+      setDialogVisible(true);
+    }
+  }, [error]);
+
+  const handleConfirm = async () => {
+    if (!paymentMethodId) {
+      Alert.alert('Payment Required', 'Please select a payment method');
+      return;
+    }
+
+    if (!billingAddress.fullName || !billingAddress.address) {
+      Alert.alert('Address Required', 'Please complete your billing address');
+      return;
+    }
+
+    try {
+      const subscriptionData = {
+        planId,
+        billingCycle,
+        paymentMethodId,
+        // Include billing address in metadata
+        metadata: {
+          billingAddress,
+        },
+      };
+
+      if (currentSubscription) {
+        // Update existing subscription
+        await dispatch(updateSubscription(subscriptionData)).unwrap();
+        setDialogProps({
+          title: 'Plan Updated!',
+          message: 'Your subscription plan has been updated successfully.',
+          type: 'success',
+        });
+      } else {
+        // Create new subscription
+        await dispatch(createSubscription(subscriptionData)).unwrap();
+        setDialogProps({
+          title: 'Subscribed!',
+          message: 'Welcome to premium! You now have access to all premium features.',
+          type: 'success',
+        });
+      }
+      
+      setDialogVisible(true);
+    } catch (error: any) {
+      setDialogProps({
+        title: 'Subscription Failed',
+        message: error.message || 'Failed to process subscription. Please try again.',
+        type: 'error',
+      });
+      setDialogVisible(true);
+    }
+  };
+
+  const calculateTotal = () => {
+    if (!selectedPlan) return '$0.00';
+    
+    const price = billingCycle === 'monthly' 
+      ? selectedPlan.price.monthly 
+      : selectedPlan.price.annually;
+      
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: selectedPlan.price.currency
+    }).format(price / 100);
   };
 
   const messageComponent = () =>
@@ -62,16 +140,43 @@ export default function ConfirmSubscription() {
       <ThemedScrollView className='flex-1 px-5'>
         <GoBackHeader screenTitle='Confirm Subscription' />
 
+        {/* Plan Details */}
         <ThemedCard className='my-4'>
           <ThemedView className='flex-row justify-between items-center mb-2'>
-            <ThemedText weight='bold' size='lg'>Premium Plan</ThemedText>
-            <ThemedText weight='bold' size='lg' style={{ color: theme === 'dark' ? '#10B981' : '#10B981' }}>$1.99</ThemedText>
+            <ThemedText weight='bold' size='lg'>
+              {selectedPlan?.name || 'Premium Plan'}
+            </ThemedText>
+            <ThemedText weight='bold' size='lg' style={{ color: theme === 'dark' ? '#10B981' : '#10B981' }}>
+              {calculateTotal()}
+            </ThemedText>
           </ThemedView>
-          <ThemedText variant='secondary' className='mb-2'>Billed monthly as $1.99</ThemedText>
-          <ThemedText>✓ Unlimited event tickets</ThemedText>
-          <ThemedText>✓ Priority support</ThemedText>
-          <ThemedText>✓ Early access to sales</ThemedText>
-          <ThemedText>✓ Exclusive member benefits</ThemedText>
+          <ThemedText variant='secondary' className='mb-2'>
+            Billed {billingCycle} as {calculateTotal()}
+          </ThemedText>
+          
+          {/* Billing Cycle Toggle */}
+          <ThemedView className='flex-row mb-4 p-2 rounded-lg' style={{ backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6' }}>
+            <TouchableOpacity
+              className={`flex-1 py-2 px-4 rounded ${billingCycle === 'monthly' ? 'bg-primary' : ''}`}
+              onPress={() => setBillingCycle('monthly')}
+            >
+              <ThemedText weight='medium' className='text-center' style={{ color: billingCycle === 'monthly' ? 'white' : undefined }}>
+                Monthly
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`flex-1 py-2 px-4 rounded ${billingCycle === 'annually' ? 'bg-primary' : ''}`}
+              onPress={() => setBillingCycle('annually')}
+            >
+              <ThemedText weight='medium' className='text-center' style={{ color: billingCycle === 'annually' ? 'white' : undefined }}>
+                Annually
+              </ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+          
+          {selectedPlan?.features.map((feature, index) => (
+            <ThemedText key={index}>✓ {feature}</ThemedText>
+          ))}
         </ThemedCard>
         <ThemedCard className='mb-4'>
           <Payments/>
@@ -83,7 +188,7 @@ export default function ConfirmSubscription() {
         />
 
         <ThemedText variant='secondary' weight='medium' className='text-center mt-2'>
-          You will be charged $1.99 today
+          You will be charged {calculateTotal()} today
         </ThemedText>
 
         <ThemedButton
@@ -91,8 +196,12 @@ export default function ConfirmSubscription() {
           size='lg'
           className='mt-6'
           onPress={handleConfirm}
+          disabled={loading.update || loading.create}
         >
-          Confirm & Subscribe
+          {loading.update || loading.create 
+            ? 'Processing...' 
+            : (currentSubscription ? 'Update Subscription' : 'Confirm & Subscribe')
+          }
         </ThemedButton>
 
         <TouchableOpacity

@@ -1,67 +1,75 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton, StatusBadge } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import { useNavigation } from '@react-navigation/native';
-
-interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  licensePlate: string;
-  color: string;
-  isDefault: boolean;
-}
-
-const dummyVehicles: Vehicle[] = [
-  {
-    id: '1',
-    make: 'Honda',
-    model: 'Civic',
-    year: 2020,
-    licensePlate: 'ABC1234',
-    color: 'Blue',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    make: 'Toyota',
-    model: 'Camry',
-    year: 2019,
-    licensePlate: 'XYZ5678',
-    color: 'White',
-    isDefault: false,
-  },
-  {
-    id: '3',
-    make: 'Ford',
-    model: 'F-150',
-    year: 2021,
-    licensePlate: 'DEF9012',
-    color: 'Red',
-    isDefault: false,
-  },
-];
+import { useAppDispatch, useAppSelector } from '../../store';
+import { 
+  fetchVehicles, 
+  setDefaultVehicle, 
+  deleteVehicle, 
+  selectVehicles, 
+  selectVehicleLoading, 
+  selectVehicleError 
+} from '../../store/slices/vehicleSlice';
 
 export default function VehicleList() {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const [vehicles, setVehicles] = useState<Vehicle[]>(dummyVehicles);
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const vehicles = useAppSelector(selectVehicles);
+  const isLoading = useAppSelector(selectVehicleLoading);
+  const error = useAppSelector(selectVehicleError);
 
-  const handleSetDefault = (vehicleId: string) => {
-    setVehicles(prev =>
-      prev.map(vehicle => ({
-        ...vehicle,
-        isDefault: vehicle.id === vehicleId,
-      }))
+  // Fetch vehicles on mount
+  useEffect(() => {
+    dispatch(fetchVehicles());
+  }, [dispatch]);
+
+  // Handle error display
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error, [
+        { text: 'OK', onPress: () => {} }
+      ]);
+    }
+  }, [error]);
+
+  const handleSetDefault = async (vehicleId: string) => {
+    try {
+      await dispatch(setDefaultVehicle(vehicleId)).unwrap();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to set default vehicle');
+    }
+  };
+
+  const handleDeleteVehicle = (vehicleId: string) => {
+    Alert.alert(
+      'Delete Vehicle',
+      'Are you sure you want to delete this vehicle?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(deleteVehicle(vehicleId)).unwrap();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete vehicle');
+            }
+          }
+        }
+      ]
     );
   };
 
-  const renderVehicleItem = ({ item }: { item: Vehicle }) => (
+  const renderVehicleItem = ({ item }: { item: any }) => (
     <ThemedCard className="mb-3">
       <ThemedView className="flex-row items-center justify-between">
         <ThemedView className="flex-1">
@@ -95,7 +103,7 @@ export default function VehicleList() {
         <ThemedView className="ml-4 items-center">
           {!item.isDefault && (
             <TouchableOpacity
-              onPress={() => handleSetDefault(item.id)}
+              onPress={() => handleSetDefault(item._id)}
               className="mb-2"
             >
               <ThemedText 
@@ -107,11 +115,11 @@ export default function VehicleList() {
               </ThemedText>
             </TouchableOpacity>
           )}
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteVehicle(item._id)}>
             <Ionicons
-              name="ellipsis-vertical"
+              name="trash-outline"
               size={20}
-              color={theme === 'dark' ? '#94A3B8' : '#6B7280'}
+              color={theme === 'dark' ? '#EF4444' : '#DC2626'}
             />
           </TouchableOpacity>
         </ThemedView>
@@ -152,7 +160,7 @@ export default function VehicleList() {
           <FlatList
             data={vehicles}
             renderItem={renderVehicleItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item._id}
             contentContainerStyle={{ 
               paddingHorizontal: 16, 
               paddingBottom: 100 

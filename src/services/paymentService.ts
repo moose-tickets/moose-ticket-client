@@ -33,12 +33,15 @@ const PAYMENT_ENDPOINTS = {
   SET_DEFAULT_PAYMENT: (id: string) => `/payments/methods/${id}/default`,
   PAYMENTS: '/payments',
   PAYMENT_DETAIL: (id: string) => `/payments/${id}`,
-  BILLING_HISTORY: '/billing/history',
+  BILLING_HISTORY: '/payments/billing/history',
+  WEBHOOKS: '/payments/webhooks',
   SUBSCRIPTIONS: '/subscriptions',
   SUBSCRIPTION_DETAIL: (id: string) => `/subscriptions/${id}`,
   SUBSCRIPTION_PLANS: '/subscriptions/plans',
   CANCEL_SUBSCRIPTION: (id: string) => `/subscriptions/${id}/cancel`,
   REFUND_PAYMENT: (id: string) => `/payments/${id}/refund`,
+  STRIPE_PAYMENT_INTENT: '/payments/stripe/payment-intent',
+  STRIPE_SETUP_INTENT: '/payments/stripe/setup-intent',
 } as const;
 
 class PaymentService {
@@ -648,6 +651,162 @@ class PaymentService {
         success: false,
         error: 'Network error',
         message: 'Unable to cancel subscription. Please try again.'
+      };
+    }
+  }
+
+  // Stripe Integration
+  async createPaymentIntent(amount: number, currency: string = 'CAD', metadata?: any): Promise<ApiResponse<any>> {
+    try {
+      const sanitizedData = {
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: currency.toUpperCase(),
+        metadata: metadata || {},
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.PAYMENT_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.post<ApiResponse<any>>(
+        PAYMENT_ENDPOINTS.STRIPE_PAYMENT_INTENT,
+        sanitizedData
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Create payment intent error:', error);
+      
+      return {
+        success: false,
+        error: 'Payment setup failed',
+        message: 'Unable to setup payment. Please try again.'
+      };
+    }
+  }
+
+  async createSetupIntent(customerId?: string): Promise<ApiResponse<any>> {
+    try {
+      const sanitizedData = {
+        customerId: customerId?.trim(),
+      };
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.PAYMENT_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.post<ApiResponse<any>>(
+        PAYMENT_ENDPOINTS.STRIPE_SETUP_INTENT,
+        sanitizedData
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Create setup intent error:', error);
+      
+      return {
+        success: false,
+        error: 'Payment setup failed',
+        message: 'Unable to setup payment method. Please try again.'
+      };
+    }
+  }
+
+  // Payment Analytics
+  async getPaymentAnalytics(timeRange?: string): Promise<ApiResponse<any>> {
+    try {
+      const params = timeRange ? { timeRange } : {};
+      const response = await apiClient.get<ApiResponse<any>>(
+        '/payments/analytics',
+        { params }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get payment analytics error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get analytics',
+        message: 'Unable to retrieve payment analytics.'
+      };
+    }
+  }
+
+  // Payment plan management
+  async getAvailablePaymentPlans(ticketId?: string): Promise<ApiResponse<any>> {
+    try {
+      const params = ticketId ? { ticketId } : {};
+      const response = await apiClient.get<ApiResponse<any>>(
+        '/payments/plans',
+        { params }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get payment plans error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get plans',
+        message: 'Unable to retrieve payment plans.'
+      };
+    }
+  }
+
+  async createPaymentPlan(planData: any): Promise<ApiResponse<any>> {
+    try {
+      const sanitizedData = sanitizeFormData(planData, {
+        ticketId: (val: string) => val.trim(),
+        installments: (val: number) => Math.max(1, Math.min(12, val)),
+        firstPaymentDate: (val: string) => val.trim(),
+      });
+
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.PAYMENT_SUBMIT,
+        sanitizedData
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      const response = await apiClient.post<ApiResponse<any>>(
+        '/payments/plans',
+        sanitizedData
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Create payment plan error:', error);
+      
+      return {
+        success: false,
+        error: 'Plan creation failed',
+        message: 'Unable to create payment plan. Please try again.'
       };
     }
   }

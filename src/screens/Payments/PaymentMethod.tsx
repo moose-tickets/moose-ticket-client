@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import AppLayout from '../../wrappers/layout';
@@ -8,31 +8,35 @@ import { useTicketStackNavigation } from '../../navigation/hooks';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
-
-const dummyCards = [
-  {
-    id: '1',
-    type: 'Visa',
-    number: '**** **** **** 1234',
-    expiry: '04/26',
-    expired: false,
-    isDefault: true,
-  },
-  {
-    id: '2',
-    type: 'Mastercard',
-    number: '**** **** **** 5678',
-    expiry: '12/23',
-    expired: true,
-    isDefault: false,
-  },
-];
+import { useAppDispatch, useAppSelector } from '../../store';
+import { 
+  fetchPaymentMethods, 
+  deletePaymentMethod, 
+  setDefaultPaymentMethod 
+} from '../../store/slices/paymentSlice';
 
 export default function PaymentMethod() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
-  const [cards, setCards] = useState(dummyCards);
+  const dispatch = useAppDispatch();
   const [cardToDelete, setCardToDelete] = useState<string | null>(null);
+
+  // Redux state
+  const paymentMethods = useAppSelector(state => state.payments.paymentMethods);
+  const loading = useAppSelector(state => state.payments.loading);
+  const error = useAppSelector(state => state.payments.error);
+
+  // Fetch payment methods on mount
+  useEffect(() => {
+    dispatch(fetchPaymentMethods());
+  }, [dispatch]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error);
+    }
+  }, [error]);
 
   const [confirmDialogVisible, setConfirmDialogVisible] = useState(false);
   const [infoDialogVisible, setInfoDialogVisible] = useState(false);
@@ -42,13 +46,15 @@ export default function PaymentMethod() {
     type: 'info' as 'info' | 'success' | 'error' | 'warning',
   });
 
-  const handleConfirmDelete = () => {
-    const deletingCard = cards.find((c) => c.id === cardToDelete);
-    const remainingActive = cards.filter(
-      (c) => c.id !== cardToDelete && !c.expired
+  const handleConfirmDelete = async () => {
+    if (!cardToDelete) return;
+
+    const deletingCard = paymentMethods.find((c) => c._id === cardToDelete);
+    const remainingActive = paymentMethods.filter(
+      (c) => c._id !== cardToDelete && !c.isExpired
     );
 
-    if (deletingCard && !deletingCard.expired && remainingActive.length === 0) {
+    if (deletingCard && !deletingCard.isExpired && remainingActive.length === 0) {
       setDialogProps({
         title: 'Cannot Delete Card',
         message:
@@ -61,9 +67,15 @@ export default function PaymentMethod() {
       return;
     }
 
-    setCards((prev) => prev.filter((c) => c.id !== cardToDelete));
-    setCardToDelete(null);
-    setConfirmDialogVisible(false);
+    try {
+      await dispatch(deletePaymentMethod(cardToDelete)).unwrap();
+      setCardToDelete(null);
+      setConfirmDialogVisible(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to delete payment method');
+      setCardToDelete(null);
+      setConfirmDialogVisible(false);
+    }
   };
 
   const renderRightActions = (id: string) => (
@@ -92,75 +104,132 @@ export default function PaymentMethod() {
     </TouchableOpacity>
   );
 
-  const handleSetDefault = (id: string) => {
-    setCards((prev) =>
-      prev.map((card) => ({
-        ...card,
-        isDefault: card.id === id,
-      }))
-    );
+  const handleSetDefault = async (id: string) => {
+    try {
+      await dispatch(setDefaultPaymentMethod(id)).unwrap();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to set default payment method');
+    }
   };
+
+  const formatCardNumber = (cardNumber: string) => {
+    // Show last 4 digits
+    return `**** **** **** ${cardNumber.slice(-4)}`;
+  };
+
+  const formatExpiryDate = (expiryMonth: number, expiryYear: number) => {
+    return `${expiryMonth.toString().padStart(2, '0')}/${expiryYear.toString().slice(-2)}`;
+  };
+
+  const getCardIcon = (brand: string) => {
+    switch (brand.toLowerCase()) {
+      case 'visa':
+        return 'cc-visa';
+      case 'mastercard':
+        return 'cc-mastercard';
+      case 'amex':
+      case 'american express':
+        return 'cc-amex';
+      case 'discover':
+        return 'cc-discover';
+      default:
+        return 'credit-card';
+    }
+  };
+
+  if (loading.fetch && paymentMethods.length === 0) {
+    return (
+      <AppLayout scrollable={false}>
+        <GoBackHeader screenTitle='Payment Method' />
+        <ThemedView className='flex-1 justify-center items-center'>
+          <ThemedText>Loading payment methods...</ThemedText>
+        </ThemedView>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout scrollable={false}>
        {/* Header */}
           <GoBackHeader screenTitle='Payment Method' />
 
-      <FlatList
-        data={cards}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
-        renderItem={({ item }) => (
-          <Swipeable
-            renderLeftActions={() => renderLeftActions(item.id)}
-            renderRightActions={() => renderRightActions(item.id)}
+      {paymentMethods.length === 0 ? (
+        <ThemedView className='flex-1 justify-center items-center px-4'>
+          <Ionicons
+            name="card-outline"
+            size={64}
+            color={theme === 'dark' ? '#4A5158' : '#9CA3AF'}
+            style={{ marginBottom: 16 }}
+          />
+          <ThemedText size='lg' weight='semibold' className='mb-2 text-center'>
+            No Payment Methods
+          </ThemedText>
+          <ThemedText variant='secondary' className='text-center mb-6'>
+            Add a payment method to make payments easier
+          </ThemedText>
+          <ThemedButton
+            onPress={() => navigation.navigate('AddPaymentMethod')}
+            variant='primary'
+            size='lg'
           >
-            <ThemedCard className='mb-3'>
-              <ThemedView className='flex-row justify-between items-center mb-1'>
-                <ThemedView className='flex-row items-center space-x-2'>
-                  <TouchableOpacity
-                    onPress={() => handleSetDefault(item.id)}
-                    className={`w-6 h-6 rounded-full border-2 ${
-                      item.isDefault
-                        ? 'border-primary bg-primary'
-                        : 'border-border bg-background'
-                    } items-center justify-center mr-3`}
-                  >
-                    {item.isDefault && (
-                      <Ionicons name='checkmark' size={16} color='white' />
-                    )}
-                  </TouchableOpacity>
+            Add Your First Card
+          </ThemedButton>
+        </ThemedView>
+      ) : (
+        <FlatList
+          data={paymentMethods}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
+          renderItem={({ item }) => (
+            <Swipeable
+              renderLeftActions={() => renderLeftActions(item._id)}
+              renderRightActions={() => renderRightActions(item._id)}
+            >
+              <ThemedCard className='mb-3'>
+                <ThemedView className='flex-row justify-between items-center mb-1'>
+                  <ThemedView className='flex-row items-center space-x-2'>
+                    <TouchableOpacity
+                      onPress={() => handleSetDefault(item._id)}
+                      className={`w-6 h-6 rounded-full border-2 ${
+                        item.isDefault
+                          ? 'border-primary bg-primary'
+                          : 'border-border bg-background'
+                      } items-center justify-center mr-3`}
+                    >
+                      {item.isDefault && (
+                        <Ionicons name='checkmark' size={16} color='white' />
+                      )}
+                    </TouchableOpacity>
 
-                  <FontAwesome
-                    name={
-                      item.type.toLowerCase() === 'visa'
-                        ? 'cc-visa'
-                        : 'cc-mastercard'
-                    }
-                    size={24}
-                    color={theme === 'dark' ? '#22C55E' : '#10472B'}
-                  />
-                  <ThemedText weight='semibold'>
-                    {item.type}
-                  </ThemedText>
-                </ThemedView>
-              </ThemedView>
-
-              <ThemedView className='flex-row justify-between items-center pl-9'>
-                <ThemedText variant='secondary'>{item.number}</ThemedText>
-                <ThemedView className='flex-column items-center space-x-2'>
-                  <ThemedText size='sm' variant='tertiary'>{item.expiry}</ThemedText>
-                  {item.expired && (
-                    <ThemedText size='xs' weight='medium' className='text-red-500'>
-                      Expired
+                    <FontAwesome
+                      name={getCardIcon(item.brand)}
+                      size={24}
+                      color={theme === 'dark' ? '#22C55E' : '#10472B'}
+                    />
+                    <ThemedText weight='semibold'>
+                      {item.brand}
                     </ThemedText>
-                  )}
+                  </ThemedView>
                 </ThemedView>
-              </ThemedView>
-            </ThemedCard>
-          </Swipeable>
-        )}
-      />
+
+                <ThemedView className='flex-row justify-between items-center pl-9'>
+                  <ThemedText variant='secondary'>{formatCardNumber(item.last4)}</ThemedText>
+                  <ThemedView className='flex-column items-center space-x-2'>
+                    <ThemedText size='sm' variant='tertiary'>
+                      {formatExpiryDate(item.expiryMonth, item.expiryYear)}
+                    </ThemedText>
+                    {item.isExpired && (
+                      <ThemedText size='xs' weight='medium' className='text-red-500'>
+                        Expired
+                      </ThemedText>
+                    )}
+                  </ThemedView>
+                </ThemedView>
+              </ThemedCard>
+            </Swipeable>
+          )}
+        />
+      )}
 
       <ThemedView className='absolute bottom-6 left-6 right-6'>
         <ThemedButton

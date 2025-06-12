@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,10 +12,19 @@ import useStatusBarFix from '../../hooks/useStatusBarFix';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput } from "../../components/ThemedComponents";
 import AppLayout from "../../wrappers/layout";
 import Passport from "./Passport";
+import Dialog from "../../components/Dialog";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { signUp, clearError } from "../../store/slices/authSlice";
+import { validateEmail, validatePassword, validateRequired } from "../../utils/validators";
+import { sanitizeEmail, sanitizePassword, sanitizeName } from "../../utils/sanitize";
 
 export default function SignUp() {
   const navigation = useAuthStackNavigation();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
   
   // Fix status bar styling during navigation
   useStatusBarFix();
@@ -23,11 +32,18 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [license, setLicense] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogProps, setDialogProps] = useState({
+    title: "",
+    message: "",
+    type: "info" as "success" | "error" | "info" | "warning",
+  });
 
   const [validLength, setValidLength] = useState(false);
   const [hasUpper, setHasUpper] = useState(false);
@@ -43,22 +59,103 @@ export default function SignUp() {
     setHasSpecial(/[^A-Za-z0-9]/.test(pw));
   };
 
-  const handleSignUp = () => {
-    if (!email || !password || !confirmPassword || !license || !fullName) {
-      return Alert.alert("Error", "All fields are required.");
+  // Handle errors from Redux
+  useEffect(() => {
+    if (error) {
+      setDialogProps({
+        title: "Registration Error",
+        message: error,
+        type: "error",
+      });
+      setDialogVisible(true);
     }
-    if (password !== confirmPassword) {
-      return Alert.alert("Error", "Passwords do not match.");
+  }, [error]);
+
+  // Redirect if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigation.getParent()?.navigate("Main" as never);
     }
-    if (!validLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
-      return Alert.alert("Error", "Password does not meet requirements.");
+  }, [isAuthenticated, navigation]);
+
+  const validateForm = () => {
+    const errors: Record<string, string[]> = {};
+
+    // Validate email
+    const emailResult = validateEmail(email);
+    if (!emailResult.isValid) {
+      errors.email = emailResult.errors;
     }
 
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert("Success", "Account created.");
-    }, 1500);
+    // Validate password
+    const passwordResult = validatePassword(password);
+    if (!passwordResult.isValid) {
+      errors.password = passwordResult.errors;
+    }
+
+    // Validate confirm password
+    if (password !== confirmPassword) {
+      errors.confirmPassword = ["Passwords do not match"];
+    }
+
+    // Validate required fields
+    const requiredFields = [
+      { key: "fullName", value: fullName, label: "Full name" },
+      { key: "licenseNumber", value: licenseNumber, label: "License number" },
+    ];
+
+    requiredFields.forEach(({ key, value, label }) => {
+      const result = validateRequired(value, label);
+      if (!result.isValid) {
+        errors[key] = result.errors;
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSignUp = async () => {
+    // Validate form
+    const isValid = validateForm();
+    if (!isValid) {
+      setDialogProps({
+        title: "Validation Error",
+        message: "Please correct the errors and try again.",
+        type: "error",
+      });
+      setDialogVisible(true);
+      return;
+    }
+
+    try {
+      // Prepare sanitized data
+      const signUpData = {
+        email: sanitizeEmail(email),
+        password: sanitizePassword(password),
+        fullName: sanitizeName(fullName),
+        licenseNumber: licenseNumber.trim().toUpperCase(),
+        phone: phone.trim(),
+      };
+
+      // Dispatch sign up action
+      await dispatch(signUp(signUpData)).unwrap();
+
+      setDialogProps({
+        title: "Account Created",
+        message: "Your account has been created successfully. Welcome to MooseTickets!",
+        type: "success",
+      });
+      setDialogVisible(true);
+
+    } catch (error: any) {
+      setDialogProps({
+        title: "Registration Failed",
+        message: error.message || "Failed to create account. Please try again.",
+        type: "error",
+      });
+      setDialogVisible(true);
+    }
   };
 
   const InputField = ({
@@ -155,12 +252,22 @@ export default function SignUp() {
         />
 
         <ThemedText variant="primary" size="sm" className="mb-1">
+          Phone Number (Optional)
+        </ThemedText>
+        <InputField
+          placeholder="Enter your phone number"
+          value={phone}
+          onChangeText={setPhone}
+          icon={<Ionicons name="call-outline" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+        />
+
+        <ThemedText variant="primary" size="sm" className="mb-1">
           License Number
         </ThemedText>
         <InputField
           placeholder="Enter your license number"
-          value={license}
-          onChangeText={setLicense}
+          value={licenseNumber}
+          onChangeText={setLicenseNumber}
           icon={<FontAwesome name="id-card-o" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
         />
 
@@ -189,10 +296,10 @@ export default function SignUp() {
           variant="primary"
           size="lg"
           onPress={handleSignUp}
-          disabled={loading}
+          disabled={isLoading}
           className="mt-6"
         >
-          {loading ? "Creating Account…" : "Create Account"}
+          {isLoading ? "Creating Account…" : "Create Account"}
         </ThemedButton>
 
         <Passport text="Or sign up with" />
@@ -218,6 +325,19 @@ export default function SignUp() {
           </ThemedText>
         </TouchableOpacity>
       </KeyboardAvoidingView>
+
+      <Dialog
+        visible={dialogVisible}
+        title={dialogProps.title}
+        message={dialogProps.message}
+        type={dialogProps.type}
+        onClose={() => {
+          setDialogVisible(false);
+          if (error) {
+            dispatch(clearError());
+          }
+        }}
+      />
     </AppLayout>
   );
 }

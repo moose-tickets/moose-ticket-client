@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -16,12 +17,20 @@ import GoBackHeader from '../../components/GoBackHeader';
 import Dialog from '../../components/Dialog';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { createVehicle, updateVehicle, selectVehicleLoading } from '../../store/slices/vehicleSlice';
 
 export default function AddVehicle() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
   const route = useRoute<RouteProp<SettingsStackParamList | TicketStackParamList, 'AddVehicle'>>();
   const vehicleId = route.params?.vehicleId;
+  
+  // Redux state
+  const isLoading = useAppSelector(selectVehicleLoading);
+  
+  // Form state
   const [licensePlate, setLicensePlate] = useState('');
   const [make, setMake] = useState('');
   const [year, setYear] = useState('');
@@ -34,21 +43,45 @@ export default function AddVehicle() {
     type: 'info' as 'success' | 'error' | 'info' | 'warning',
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!licensePlate || !make || !year || !model) {
-      alert('Please fill all required fields.');
+      Alert.alert('Validation Error', 'Please fill all required fields.');
       return;
     }
 
-    const vehicle = { licensePlate, make, year, color, model };
-    console.log('Saving vehicle:', vehicle);
+    const vehicleData = { 
+      licensePlate: licensePlate.toUpperCase(), 
+      make, 
+      year: parseInt(year), 
+      model, 
+      color: color || undefined 
+    };
 
-    setDialogProps({
-      title: 'New Vehicle Added',
-      message: 'Vehicle added successfully',
-      type: 'success',
-    });
-    setDialogVisible(true);
+    try {
+      if (vehicleId) {
+        await dispatch(updateVehicle({ vehicleId, ...vehicleData })).unwrap();
+        setDialogProps({
+          title: 'Vehicle Updated',
+          message: 'Vehicle information updated successfully',
+          type: 'success',
+        });
+      } else {
+        await dispatch(createVehicle(vehicleData)).unwrap();
+        setDialogProps({
+          title: 'Vehicle Added',
+          message: 'New vehicle added successfully',
+          type: 'success',
+        });
+      }
+      setDialogVisible(true);
+    } catch (error: any) {
+      setDialogProps({
+        title: 'Error',
+        message: error.message || 'Failed to save vehicle',
+        type: 'error',
+      });
+      setDialogVisible(true);
+    }
   };
 
   return (
@@ -103,8 +136,9 @@ export default function AddVehicle() {
           variant='primary'
           size='lg'
           className='mt-8'
+          disabled={isLoading}
         >
-          {vehicleId ? 'Update Vehicle' : 'Save Vehicle'}
+          {isLoading ? 'Saving...' : (vehicleId ? 'Update Vehicle' : 'Save Vehicle')}
         </ThemedButton>
         {!vehicleId && (
           <ThemedText variant='tertiary' className='text-center mt-2'>

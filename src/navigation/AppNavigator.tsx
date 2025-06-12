@@ -1,7 +1,7 @@
 // src/navigation/AppNavigator.tsx
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAppSelector } from '../redux/store';
+import { useAppSelector } from '../store';
 
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';

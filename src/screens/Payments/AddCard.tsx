@@ -22,10 +22,16 @@ import { useRateLimit } from '../../hooks/useRateLimit';
 import { RateLimitType } from '../../services/arcjetSecurity';
 import { validateCreditCard, validateCVV, validateRequired } from '../../utils/validators';
 import { sanitizeCreditCard, sanitizeCVV, sanitizeName, sanitizeFormData, redactForLogging } from '../../utils/sanitize';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { createPaymentMethod } from '../../store/slices/paymentSlice';
 
 export default function AddCard() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
+
+  // Redux state
+  const loading = useAppSelector(state => state.payments.loading);
 
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -41,7 +47,6 @@ export default function AddCard() {
   });
 
   const [saveCard, setSaveCard] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
 
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -120,9 +125,8 @@ export default function AddCard() {
   };
 
   const handleAddCard = async () => {
-    if (isLoading || isRateLimited) return;
+    if (loading.create || isRateLimited) return;
 
-    setIsLoading(true);
     setValidationErrors({});
 
     try {
@@ -135,15 +139,20 @@ export default function AddCard() {
           type: "error",
         });
         setDialogVisible(true);
-        setIsLoading(false);
         return;
       }
 
-      // 2. Sanitize payment data
+      // 2. Parse expiry date
+      const [month, year] = expiry.split('/');
+      const expiryMonth = parseInt(month, 10);
+      const expiryYear = parseInt(`20${year}`, 10);
+
+      // 3. Sanitize payment data
       const sanitizedData = {
-        cardName: sanitizeName(cardName),
+        cardholderName: sanitizeName(cardName),
         cardNumber: sanitizeCreditCard(cardNumber),
-        expiry: expiry.trim(),
+        expiryMonth,
+        expiryYear,
         cvv: sanitizeCVV(cvv),
         billingAddress: sanitizeFormData(billingAddress, {
           fullName: sanitizeName,
@@ -153,10 +162,10 @@ export default function AddCard() {
           country: (val) => val.trim(),
           postalCode: (val) => val.trim().toUpperCase(),
         }),
-        saveCard
+        setAsDefault: saveCard
       };
 
-      // 3. Perform security checks with rate limiting
+      // 4. Perform security checks with rate limiting
       await executeWithRateLimit(async () => {
         // Bot detection
         const botContext = await checkBot();
@@ -168,8 +177,8 @@ export default function AddCard() {
         const logData = redactForLogging(sanitizedData);
         console.log('Adding card with sanitized data:', logData);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Dispatch Redux action
+        await dispatch(createPaymentMethod(sanitizedData)).unwrap();
 
         // Success
         setDialogProps({
@@ -195,8 +204,6 @@ export default function AddCard() {
         type: "error",
       });
       setDialogVisible(true);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -305,8 +312,9 @@ export default function AddCard() {
               variant='primary'
               size='lg'
               className='mb-3'
+              disabled={loading.create}
             >
-              Add Card
+              {loading.create ? 'Adding Card...' : 'Add Card'}
             </ThemedButton>
 
             <ThemedButton

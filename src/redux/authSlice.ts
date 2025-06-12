@@ -1,47 +1,76 @@
 // src/redux/authSlice.ts
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
-import apiClient from "../services/apiClients"; // no store import here
+import authService from "../services/authService";
+import { LoginRequest, SignUpRequest, User, ApiResponse, LoginResponse } from "../types/api";
 
 export interface AuthState {
+  user: User | null;
   token: string | null;
-  roles: string[];
+  refreshToken: string | null;
+  isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  isEmailVerified: boolean;
 }
 
 const initialState: AuthState = {
+  user: null,
   token: null,
-  roles: [],
+  refreshToken: null,
+  isAuthenticated: false,
   loading: false,
   error: null,
+  isEmailVerified: false,
 };
 
 // Thunk to sign in
 export const signIn = createAsyncThunk<
-  { token: string; roles: string[] },
-  { email: string; password: string },
+  LoginResponse,
+  LoginRequest,
   { rejectValue: string }
 >(
   "auth/signIn",
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await apiClient.post("/auth/signin", credentials);
-      const { token, roles } = response.data as { token: string; roles: string[] };
-
-      // Persist token
-      await SecureStore.setItemAsync("userToken", token);
-      return { token, roles };
+      const response = await authService.login(credentials);
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.message || "Sign-in failed");
+      }
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Sign-in failed";
-      return rejectWithValue(msg);
+      return rejectWithValue(err.message || "Sign-in failed");
+    }
+  }
+);
+
+// Thunk to sign up
+export const signUp = createAsyncThunk<
+  LoginResponse,
+  SignUpRequest,
+  { rejectValue: string }
+>(
+  "auth/signUp",
+  async (userData, { rejectWithValue }) => {
+    try {
+      const response = await authService.signup(userData);
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.message || "Sign-up failed");
+      }
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Sign-up failed");
     }
   }
 );
 
 // Thunk to hydrate token on app start
 export const hydrateAuth = createAsyncThunk<
-  { token: string } | null,
+  { user: User; token: string } | null,
   void,
   { rejectValue: string }
 >(
@@ -49,10 +78,110 @@ export const hydrateAuth = createAsyncThunk<
   async (_, { rejectWithValue }) => {
     try {
       const savedToken = await SecureStore.getItemAsync("userToken");
-      if (savedToken) return { token: savedToken };
+      const savedUser = await authService.getStoredUser();
+      
+      if (savedToken && savedUser) {
+        // Check if token is still valid
+        const isValid = await authService.isTokenValid();
+        if (isValid) {
+          return { token: savedToken, user: savedUser };
+        } else {
+          // Try to refresh token
+          const refreshSuccess = await authService.refreshToken();
+          if (refreshSuccess) {
+            const newToken = await SecureStore.getItemAsync("userToken");
+            const updatedUser = await authService.getStoredUser();
+            if (newToken && updatedUser) {
+              return { token: newToken, user: updatedUser };
+            }
+          }
+        }
+      }
       return null;
     } catch (err: any) {
-      return rejectWithValue("Failed to load token");
+      return rejectWithValue("Failed to load saved session");
+    }
+  }
+);
+
+// Thunk to get current user
+export const getCurrentUser = createAsyncThunk<
+  User,
+  void,
+  { rejectValue: string }
+>(
+  "auth/getCurrentUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authService.getCurrentUser();
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.message || "Failed to get user data");
+      }
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to get user data");
+    }
+  }
+);
+
+// Thunk to logout
+export const logout = createAsyncThunk<
+  void,
+  void,
+  { rejectValue: string }
+>(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      await authService.logout();
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Logout failed");
+    }
+  }
+);
+
+// Thunk to forgot password
+export const forgotPassword = createAsyncThunk<
+  { message: string },
+  string,
+  { rejectValue: string }
+>(
+  "auth/forgotPassword",
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await authService.forgotPassword(email);
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.message || "Failed to send reset email");
+      }
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to send reset email");
+    }
+  }
+);
+
+// Thunk to verify email
+export const verifyEmail = createAsyncThunk<
+  { message: string },
+  string,
+  { rejectValue: string }
+>(
+  "auth/verifyEmail",
+  async (token, { rejectWithValue }) => {
+    try {
+      const response = await authService.verifyEmail(token);
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.message || "Email verification failed");
+      }
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Email verification failed");
     }
   }
 );
@@ -61,12 +190,19 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    logout(state) {
-      state.token = null;
-      state.roles = [];
+    clearError: (state) => {
       state.error = null;
-      // Remove token from SecureStore, but don’t import store here
-      SecureStore.deleteItemAsync("userToken").catch(() => {});
+    },
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
+    setEmailVerified: (state, action: PayloadAction<boolean>) => {
+      state.isEmailVerified = action.payload;
+      if (state.user) {
+        state.user.emailVerified = action.payload;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -78,12 +214,37 @@ const authSlice = createSlice({
       })
       .addCase(signIn.fulfilled, (state, action) => {
         state.loading = false;
+        state.user = action.payload.user;
         state.token = action.payload.token;
-        state.roles = action.payload.roles;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.isEmailVerified = action.payload.user.emailVerified || false;
+        state.error = null;
       })
       .addCase(signIn.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Sign-in failed";
+        state.isAuthenticated = false;
+      })
+
+      // signUp
+      .addCase(signUp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(signUp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.isEmailVerified = action.payload.user.emailVerified || false;
+        state.error = null;
+      })
+      .addCase(signUp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Sign-up failed";
+        state.isAuthenticated = false;
       })
 
       // hydrateAuth
@@ -93,17 +254,90 @@ const authSlice = createSlice({
       })
       .addCase(hydrateAuth.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload?.token) {
+        if (action.payload) {
+          state.user = action.payload.user;
           state.token = action.payload.token;
-          // roles will come from signIn or a separate API call
+          state.isAuthenticated = true;
+          state.isEmailVerified = action.payload.user.emailVerified || false;
         }
       })
       .addCase(hydrateAuth.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Hydration failed";
+        state.error = action.payload || "Failed to restore session";
+        state.isAuthenticated = false;
+      })
+
+      // getCurrentUser
+      .addCase(getCurrentUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.isEmailVerified = action.payload.emailVerified || false;
+      })
+      .addCase(getCurrentUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to get user data";
+      })
+
+      // logout
+      .addCase(logout.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+        state.isEmailVerified = false;
+        state.error = null;
+      })
+      .addCase(logout.rejected, (state, action) => {
+        state.loading = false;
+        // Even if logout fails on server, clear local state
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+        state.isEmailVerified = false;
+        state.error = null;
+      })
+
+      // forgotPassword
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to send reset email";
+      })
+
+      // verifyEmail
+      .addCase(verifyEmail.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyEmail.fulfilled, (state) => {
+        state.loading = false;
+        state.isEmailVerified = true;
+        if (state.user) {
+          state.user.emailVerified = true;
+        }
+        state.error = null;
+      })
+      .addCase(verifyEmail.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Email verification failed";
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { clearError, updateUser, setEmailVerified } = authSlice.actions;
 export default authSlice.reducer;

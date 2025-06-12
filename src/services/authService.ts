@@ -27,7 +27,7 @@ import {
 
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login',
-  SIGNUP: '/auth/signup',
+  SIGNUP: '/auth/register', // Updated to match backend
   LOGOUT: '/auth/logout',
   REFRESH: '/auth/refresh',
   FORGOT_PASSWORD: '/auth/forgot-password',
@@ -36,6 +36,12 @@ const AUTH_ENDPOINTS = {
   VERIFY_EMAIL: '/auth/verify-email',
   RESEND_VERIFICATION: '/auth/resend-verification',
   ME: '/auth/me',
+  // OAuth endpoints
+  OAUTH_GOOGLE: '/auth/google',
+  OAUTH_FACEBOOK: '/auth/facebook', 
+  OAUTH_APPLE: '/auth/apple',
+  OAUTH_STATUS: '/auth/oauth/status',
+  OAUTH_ACCOUNTS: '/auth/social-accounts',
 } as const;
 
 const TOKEN_KEYS = {
@@ -605,6 +611,74 @@ class AuthService {
         error: 'Resend failed',
         message: 'Unable to resend verification email.'
       };
+    }
+  }
+
+  // OAuth Methods
+  async getOAuthStatus(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>(
+        AUTH_ENDPOINTS.OAUTH_STATUS
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('OAuth status error:', error);
+      return {
+        success: false,
+        error: 'Failed to get OAuth status',
+        message: 'Unable to retrieve OAuth configuration.'
+      };
+    }
+  }
+
+  async getSocialAccounts(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>(
+        AUTH_ENDPOINTS.OAUTH_ACCOUNTS
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Social accounts error:', error);
+      return {
+        success: false,
+        error: 'Failed to get social accounts',
+        message: 'Unable to retrieve linked social accounts.'
+      };
+    }
+  }
+
+  async unlinkSocialAccount(provider: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.delete<ApiResponse<any>>(
+        `/auth/unlink/${provider}`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Unlink social account error:', error);
+      return {
+        success: false,
+        error: 'Failed to unlink account',
+        message: `Unable to unlink ${provider} account.`
+      };
+    }
+  }
+
+  // Method to get OAuth login URLs for social providers
+  getOAuthLoginUrl(provider: 'google' | 'facebook' | 'apple'): string {
+    // Get base URL from environment
+    const baseUrl = __DEV__ 
+      ? "http://localhost:3000" 
+      : "https://api.mooseticket.com";
+      
+    switch (provider) {
+      case 'google':
+        return `${baseUrl}${AUTH_ENDPOINTS.OAUTH_GOOGLE}`;
+      case 'facebook':
+        return `${baseUrl}${AUTH_ENDPOINTS.OAUTH_FACEBOOK}`;
+      case 'apple':
+        return `${baseUrl}${AUTH_ENDPOINTS.OAUTH_APPLE}`;
+      default:
+        throw new Error(`Unsupported OAuth provider: ${provider}`);
     }
   }
 }

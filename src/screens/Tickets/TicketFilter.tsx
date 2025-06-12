@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from '../../wrappers/ThemeProvider';
-import { setFilters } from '../../redux/ticketFilterSlice';
+import { setFilters } from '../../store/slices/ticketSlice';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedCard, ThemedScrollView } from '../../components/ThemedComponents';
 
 // Simple Dropdown component

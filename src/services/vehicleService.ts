@@ -479,6 +479,113 @@ class VehicleService {
       };
     }
   }
+
+  // VIN decoding
+  async decodeVIN(vin: string): Promise<ApiResponse<any>> {
+    try {
+      // 1. Validate VIN
+      if (!vin || vin.trim().length !== 17) {
+        return {
+          success: false,
+          error: 'Invalid VIN',
+          message: 'VIN must be 17 characters long.'
+        };
+      }
+
+      // 2. Sanitize input
+      const sanitizedVIN = vin.trim().toUpperCase();
+
+      // 3. Perform security checks
+      const securityResult = await ArcjetSecurity.performSecurityCheck(
+        RateLimitType.SEARCH_QUERY,
+        { vin: sanitizedVIN }
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Unable to make Request',
+          message: securityResult.errors.join(', ')
+        };
+      }
+
+      // 4. Make API request
+      const response = await apiClient.post<ApiResponse<any>>(
+        '/vehicles/decode-vin',
+        { vin: sanitizedVIN }
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Decode VIN error:', error);
+      
+      return {
+        success: false,
+        error: 'VIN decode failed',
+        message: 'Unable to decode VIN. Please try again.'
+      };
+    }
+  }
+
+  // Canadian license plate format validation
+  async validateCanadianPlate(licensePlate: string, province: string): Promise<ApiResponse<any>> {
+    try {
+      // 1. Validate input
+      const plateValidation = validateLicensePlate(licensePlate);
+      if (!plateValidation.isValid) {
+        return {
+          success: false,
+          error: 'Invalid license plate',
+          message: plateValidation.errors.join(', ')
+        };
+      }
+
+      // 2. Sanitize input
+      const sanitizedData = {
+        licensePlate: sanitizeLicensePlate(licensePlate),
+        province: province.trim().toUpperCase(),
+      };
+
+      // 3. Make API request
+      const response = await apiClient.post<ApiResponse<any>>(
+        '/vehicles/validate-canadian-plate',
+        sanitizedData
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Validate Canadian plate error:', error);
+      
+      return {
+        success: false,
+        error: 'Validation failed',
+        message: 'Unable to validate Canadian license plate.'
+      };
+    }
+  }
+
+  // Get vehicle analytics
+  async getVehicleAnalytics(vehicleId?: string): Promise<ApiResponse<any>> {
+    try {
+      const endpoint = vehicleId 
+        ? `/vehicles/${vehicleId}/analytics`
+        : '/vehicles/analytics';
+
+      const response = await apiClient.get<ApiResponse<any>>(endpoint);
+      return response.data;
+
+    } catch (error: any) {
+      console.error('Get vehicle analytics error:', error);
+      
+      return {
+        success: false,
+        error: 'Failed to get analytics',
+        message: 'Unable to retrieve vehicle analytics.'
+      };
+    }
+  }
 }
 
 export default new VehicleService();

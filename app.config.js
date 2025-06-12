@@ -17,7 +17,8 @@ export default {
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#004F4F",
+      hideAsync: true,
     },
 
     // iOS-specific settings

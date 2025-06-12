@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Switch,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppLayout from '../../wrappers/layout';
@@ -17,46 +18,100 @@ import AddressForm from '../../components/Address';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { 
+  updatePaymentMethod, 
+  fetchPaymentMethodById,
+  setDefaultPaymentMethod 
+} from '../../store/slices/paymentSlice';
 
 export default function EditCard() {
   const navigation = useNavigation();
   const route = useRoute();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
   const { cardId } = route.params as { cardId: string };
 
-  // Pre-populate with existing card data
-  const [cardName, setCardName] = useState('John Doe');
-  const [cardNumber, setCardNumber] = useState('**** **** **** 1234');
-  const [expiry, setExpiry] = useState('04/26');
+  // Redux state
+  const paymentMethods = useAppSelector(state => state.payments.paymentMethods);
+  const loading = useAppSelector(state => state.payments.loading);
+  const error = useAppSelector(state => state.payments.error);
+
+  // Form state
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [billingAddress, setBillingAddress] = useState({
-    fullName: 'John Doe',
-    address: '123 Main St',
-    city: 'Toronto',
-    state: 'ON',
-    country: 'Canada',
-    postalCode: 'M5V 3A8',
+    fullName: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    postalCode: '',
   });
 
-  const [isDefault, setIsDefault] = useState(true);
+  const [isDefault, setIsDefault] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
 
-  const handleUpdateCard = () => {
+  // Load payment method data
+  useEffect(() => {
+    const paymentMethod = paymentMethods.find(pm => pm._id === cardId);
+    if (paymentMethod) {
+      setCardName(paymentMethod.cardholderName || '');
+      setCardNumber(`**** **** **** ${paymentMethod.last4}`);
+      setExpiry(`${paymentMethod.expiryMonth.toString().padStart(2, '0')}/${paymentMethod.expiryYear.toString().slice(-2)}`);
+      setBillingAddress(paymentMethod.billingAddress || {
+        fullName: '',
+        address: '',
+        city: '',
+        state: '',
+        country: '',
+        postalCode: '',
+      });
+      setIsDefault(paymentMethod.isDefault || false);
+    }
+  }, [cardId, paymentMethods]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error);
+    }
+  }, [error]);
+
+  const handleUpdateCard = async () => {
     if (!cardName || !expiry) {
-      setDialogVisible(true);
+      Alert.alert('Validation Error', 'Please fill in all required fields');
       return;
     }
 
-    console.log({
-      cardId,
-      cardName,
-      expiry,
-      cvv,
-      billingAddress,
-      isDefault
-    });
+    try {
+      // Parse expiry date
+      const [month, year] = expiry.split('/');
+      const expiryMonth = parseInt(month, 10);
+      const expiryYear = parseInt(`20${year}`, 10);
 
-    setDialogVisible(true);
+      const updateData = {
+        cardholderName: cardName.trim(),
+        expiryMonth,
+        expiryYear,
+        billingAddress,
+        // CVV is optional for updates
+        ...(cvv && { cvv }),
+      };
+
+      await dispatch(updatePaymentMethod({ paymentMethodId: cardId, ...updateData })).unwrap();
+
+      // Set as default if requested
+      if (isDefault) {
+        await dispatch(setDefaultPaymentMethod(cardId)).unwrap();
+      }
+
+      setDialogVisible(true);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update payment method');
+    }
   };
 
   return (
@@ -153,8 +208,9 @@ export default function EditCard() {
               variant='secondary'
               size='lg'
               className='mb-3'
+              disabled={loading.update}
             >
-              Update Card
+              {loading.update ? 'Updating...' : 'Update Card'}
             </ThemedButton>
 
             <ThemedButton

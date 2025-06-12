@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,10 +22,17 @@ import { useRateLimit } from '../../hooks/useRateLimit';
 import { RateLimitType } from '../../services/arcjetSecurity';
 import { validateLicensePlate, validateRequired } from '../../utils/validators';
 import { sanitizeLicensePlate, sanitizeUserContent, sanitizeFileName } from '../../utils/sanitize';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { createTicket, clearError } from '../../store/slices/ticketSlice';
 
 export default function AddTicket() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const { isCreating, error } = useAppSelector((state) => state.tickets);
+  
   const [form, setForm] = useState({
     plate: '',
     violation: '',
@@ -39,7 +46,6 @@ export default function AddTicket() {
   });
   const [showDate, setShowDate] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -72,6 +78,18 @@ export default function AddTicket() {
       setDialogVisible(true);
     }
   });
+
+  // Handle Redux errors
+  useEffect(() => {
+    if (error) {
+      setDialogProps({
+        title: 'Error',
+        message: error,
+        type: 'error',
+      });
+      setDialogVisible(true);
+    }
+  }, [error]);
 
   const validateForm = () => {
     const errors: Record<string, string[]> = {};
@@ -117,9 +135,8 @@ export default function AddTicket() {
   };
 
   const handleSave = async () => {
-    if (isLoading || isRateLimited) return;
+    if (isCreating || isRateLimited) return;
 
-    setIsLoading(true);
     setValidationErrors({});
 
     try {
@@ -132,24 +149,10 @@ export default function AddTicket() {
           type: "error",
         });
         setDialogVisible(true);
-        setIsLoading(false);
         return;
       }
 
-      // 2. Sanitize form data
-      const sanitizedForm = {
-        plate: sanitizeLicensePlate(form.plate),
-        violation: form.violation, // Dropdown value, should be safe
-        date: form.date,
-        location: sanitizeUserContent(form.location),
-        city: sanitizeUserContent(form.city),
-        postalCode: form.postalCode.trim().toUpperCase(),
-        fine: form.fine.trim(),
-        notes: sanitizeUserContent(form.notes),
-        imageUri: form.imageUri,
-      };
-
-      // 3. Perform security checks with rate limiting
+      // 2. Perform security checks with rate limiting
       await executeWithRateLimit(async () => {
         // Bot detection
         const botContext = await checkBot();
@@ -157,18 +160,21 @@ export default function AddTicket() {
           throw new Error('Security verification failed');
         }
 
-        // Sanitize image filename if present
-        if (sanitizedForm.imageUri) {
-          const fileName = sanitizedForm.imageUri.split('/').pop();
-          if (fileName) {
-            console.log('Sanitized filename:', sanitizeFileName(fileName));
-          }
-        }
+        // 3. Prepare ticket data for API
+        const ticketData = {
+          licensePlate: sanitizeLicensePlate(form.plate),
+          violationType: form.violation,
+          issueDate: form.date.toISOString(),
+          location: sanitizeUserContent(form.location),
+          city: sanitizeUserContent(form.city),
+          postalCode: form.postalCode.trim().toUpperCase(),
+          fineAmount: form.fine ? Number(form.fine) : 0,
+          notes: sanitizeUserContent(form.notes),
+          images: form.imageUri ? [form.imageUri] : [],
+        };
 
-        console.log('Saving ticket:', sanitizedForm);
-
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // 4. Create ticket via Redux
+        await dispatch(createTicket(ticketData)).unwrap();
 
         // Success
         setDialogProps({
@@ -194,8 +200,6 @@ export default function AddTicket() {
         type: "error",
       });
       setDialogVisible(true);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -443,7 +447,7 @@ export default function AddTicket() {
               navigation.goBack();
             }}
             className='flex-1 mx-3'
-            disabled={isLoading}
+            disabled={isCreating}
           >
             Cancel
           </ThemedButton>
@@ -451,9 +455,9 @@ export default function AddTicket() {
             variant='primary'
             onPress={handleSave}
             className='flex-1 mx-3'
-            disabled={isLoading || isRateLimited || (!isHuman && riskLevel === 'critical')}
+            disabled={isCreating || isRateLimited || (!isHuman && riskLevel === 'critical')}
           >
-            {isLoading ? 'Saving...' : 'Save Ticket'}
+            {isCreating ? 'Saving...' : 'Save Ticket'}
           </ThemedButton>
         </ThemedView>
       </ThemedScrollView>
@@ -464,8 +468,9 @@ export default function AddTicket() {
         type={dialogProps.type}
         onClose={() => {
           setDialogVisible(false);
-
-          navigation.goBack();
+          if (error) {
+            dispatch(clearError());
+          }
         }}
       />
     </AppLayout>

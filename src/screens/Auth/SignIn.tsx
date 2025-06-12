@@ -20,17 +20,22 @@ import { useRateLimit } from '../../hooks/useRateLimit';
 import { RateLimitType } from '../../services/arcjetSecurity';
 import { validateEmail, validateRequired } from '../../utils/validators';
 import { sanitizeEmail, sanitizePassword } from '../../utils/sanitize';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { loginUser, clearError } from '../../store/slices/authSlice';
 
 export default function SignIn() {
   const navigation = useAuthStackNavigation();
   const { theme } = useTheme();
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
   
   // Fix status bar styling during navigation
   useStatusBarFix();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({
@@ -83,17 +88,47 @@ export default function SignIn() {
     return Object.keys(errors).length === 0;
   };
 
+  // Handle authentication success
+  useEffect(() => {
+    if (isAuthenticated) {
+      setDialogProps({
+        title: "Success",
+        message: "Welcome back! Redirecting to dashboard...",
+        type: "success",
+      });
+      setDialogVisible(true);
+
+      // Navigate after short delay
+      setTimeout(() => {
+        setDialogVisible(false);
+        navigation.navigate("Main", { screen: "Home", params: { screen: "Dashboard" } });
+      }, 1500);
+    }
+  }, [isAuthenticated, navigation]);
+
+  // Handle authentication errors
+  useEffect(() => {
+    if (error) {
+      setDialogProps({
+        title: "Sign In Failed",
+        message: error,
+        type: "error",
+      });
+      setDialogVisible(true);
+    }
+  }, [error]);
+
   const handleSignIn = async () => {
     if (isLoading || isRateLimited) return;
 
-    setIsLoading(true);
+    // Clear previous errors
+    dispatch(clearError());
     setValidationErrors({});
 
     try {
       // 1. Validate form inputs
       const isFormValid = await validateForm();
       if (!isFormValid) {
-        setIsLoading(false);
         return;
       }
 
@@ -109,22 +144,12 @@ export default function SignIn() {
           throw new Error('Security check failed');
         }
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Success
-        setDialogProps({
-          title: "Success",
-          message: "Welcome back! Redirecting to dashboard...",
-          type: "success",
-        });
-        setDialogVisible(true);
-
-        // Navigate after short delay
-        setTimeout(() => {
-          setDialogVisible(false);
-          navigation.navigate("Main", { screen: "Home", params: { screen: "Dashboard" } });
-        }, 1500);
+        // Dispatch Redux action to sign in
+        dispatch(loginUser({
+          email: sanitizedEmail,
+          password: sanitizedPassword,
+          rememberMe: true
+        }));
       });
 
     } catch (error: any) {
@@ -136,8 +161,6 @@ export default function SignIn() {
         type: "error",
       });
       setDialogVisible(true);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -306,7 +329,13 @@ export default function SignIn() {
         title={dialogProps.title}
         message={dialogProps.message}
         type={dialogProps.type}
-        onClose={() => setDialogVisible(false)}
+        onClose={() => {
+          setDialogVisible(false);
+          // Clear error when dialog is closed
+          if (error) {
+            dispatch(clearError());
+          }
+        }}
       />
       </KeyboardAvoidingView>
     </AppLayout>
