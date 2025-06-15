@@ -99,6 +99,23 @@ export const signupUser = createAsyncThunk(
   }
 );
 
+// OAuth Login Async Thunk
+export const loginWithOAuth = createAsyncThunk(
+  'auth/loginWithOAuth',
+  async (params: { provider: 'google' | 'facebook' | 'apple'; token: string; userData?: any }, { rejectWithValue }) => {
+    try {
+      const response = await authService.loginWithOAuth(params.provider, params.token, params.userData);
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.message || `${params.provider} login failed`);
+      }
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'OAuth login failed');
+    }
+  }
+);
+
 export const hydrateAuth = createAsyncThunk(
   'auth/hydrateAuth',
   async (_, { rejectWithValue }) => {
@@ -369,6 +386,24 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(signupUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // OAuth login cases
+      .addCase(loginWithOAuth.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loginWithOAuth.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(loginWithOAuth.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

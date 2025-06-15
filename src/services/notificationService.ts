@@ -1,6 +1,6 @@
 // src/services/notificationService.ts
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   Notification,
   CreateNotificationRequest,
@@ -112,8 +112,8 @@ class NotificationService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'mark_notification_read', notificationId }
       );
 
@@ -121,7 +121,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -150,8 +150,8 @@ class NotificationService {
   async markAllAsRead(): Promise<ApiResponse<{ message: string; count: number }>> {
     try {
       // 1. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'mark_all_notifications_read' }
       );
 
@@ -159,7 +159,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -197,8 +197,8 @@ class NotificationService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'delete_notification', notificationId }
       );
 
@@ -206,7 +206,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -281,8 +281,8 @@ class NotificationService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -290,7 +290,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -335,8 +335,8 @@ class NotificationService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -344,7 +344,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -407,8 +407,8 @@ class NotificationService {
       if (settings.types) sanitizedData.types = settings.types;
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PROFILE_UPDATE,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PROFILE_UPDATE,
         sanitizedData
       );
 
@@ -416,7 +416,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -474,8 +474,8 @@ class NotificationService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -483,7 +483,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -585,8 +585,8 @@ class NotificationService {
         timezone: (val: string) => val.trim(),
       });
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PROFILE_UPDATE,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PROFILE_UPDATE,
         sanitizedData
       );
 
@@ -594,7 +594,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -630,8 +630,8 @@ class NotificationService {
         notificationIds: notificationIds.map(id => id.trim()),
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -639,7 +639,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -674,8 +674,8 @@ class NotificationService {
         notificationIds: notificationIds.map(id => id.trim()),
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -683,7 +683,7 @@ class NotificationService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 

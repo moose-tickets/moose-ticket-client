@@ -9,7 +9,8 @@ import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useAuthStackNavigation } from "../../navigation/hooks";
 import { useTheme } from "../../wrappers/ThemeProvider";
 import useStatusBarFix from '../../hooks/useStatusBarFix';
-import { ThemedView, ThemedText, ThemedButton, ThemedInput } from "../../components/ThemedComponents";
+import { ThemedView, ThemedText, ThemedButton } from "../../components/ThemedComponents";
+import InputField from "../../components/InputField";
 import AppLayout from "../../wrappers/layout";
 import Passport from "./Passport";
 import Dialog from "../../components/Dialog";
@@ -35,8 +36,6 @@ export default function SignUp() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({
@@ -158,36 +157,6 @@ export default function SignUp() {
     }
   };
 
-  const InputField = ({
-    placeholder,
-    value,
-    onChangeText,
-    secure,
-    show,
-    setShow,
-    icon,
-  }: any) => (
-    <ThemedView className="flex-row items-center border border-border bg-background-secondary rounded-xl px-4 py-3 mb-4">
-      {icon}
-      <ThemedInput
-        placeholder={placeholder}
-        value={value}
-        onChangeText={onChangeText}
-        className="flex-1 ml-2 border-0 bg-transparent p-0"
-        secureTextEntry={secure && !show}
-        autoCapitalize="none"
-      />
-      {secure && (
-        <TouchableOpacity onPress={() => setShow(!show)}>
-          <Ionicons
-            name={show ? "eye-off-outline" : "eye-outline"}
-            size={20}
-            color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'}
-          />
-        </TouchableOpacity>
-      )}
-    </ThemedView>
-  );
 
   return (
     <AppLayout>
@@ -202,73 +171,71 @@ export default function SignUp() {
           Join our community
         </ThemedText>
 
-        <ThemedText variant="primary" size="sm" className="mb-1">
-          Full Name
-        </ThemedText>
         <InputField
+          label="Full Name"
           placeholder="Enter your full name"
           value={fullName}
           onChangeText={setFullName}
-          icon={<Ionicons name="person-outline" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+          icon="person-outline"
+          required
+          className="mb-4"
         />
 
-        <ThemedText variant="primary" size="sm" className="mb-1">
-          Email
-        </ThemedText>
         <InputField
+          label="Email"
           placeholder="Enter your email address"
           value={email}
           onChangeText={setEmail}
-          icon={<Ionicons name="mail-outline" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+          icon="mail-outline"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          required
+          className="mb-4"
         />
 
-        <ThemedText variant="primary" size="sm" className="mb-1">
-          Password
-        </ThemedText>
         <InputField
+          label="Password"
           placeholder="Create password"
           value={password}
           onChangeText={(txt: string) => {
             setPassword(txt);
             validatePasswordRules(txt);
           }}
-          secure
-          show={showPassword}
-          setShow={setShowPassword}
-          icon={<Ionicons name="lock-closed-outline" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+          isPassword
+          icon="lock-closed-outline"
+          required
+          className="mb-4"
         />
 
-        <ThemedText variant="primary" size="sm" className="mb-1">
-          Confirm Password
-        </ThemedText>
         <InputField
+          label="Confirm Password"
           placeholder="Confirm your password"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
-          secure
-          show={showConfirm}
-          setShow={setShowConfirm}
-          icon={<Ionicons name="lock-closed-outline" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+          isPassword
+          icon="lock-closed-outline"
+          required
+          className="mb-4"
         />
 
-        <ThemedText variant="primary" size="sm" className="mb-1">
-          Phone Number (Optional)
-        </ThemedText>
         <InputField
+          label="Phone Number (Optional)"
           placeholder="Enter your phone number"
           value={phone}
           onChangeText={setPhone}
-          icon={<Ionicons name="call-outline" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+          icon="call-outline"
+          keyboardType="phone-pad"
+          className="mb-4"
         />
 
-        <ThemedText variant="primary" size="sm" className="mb-1">
-          License Number
-        </ThemedText>
         <InputField
+          label="License Number"
           placeholder="Enter your license number"
           value={licenseNumber}
           onChangeText={setLicenseNumber}
-          icon={<FontAwesome name="id-card-o" size={20} color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'} />}
+          icon="card-outline"
+          required
+          className="mb-4"
         />
 
         <ThemedText variant="primary" size="sm" weight="medium" className="mt-2 mb-1">

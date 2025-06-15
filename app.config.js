@@ -45,17 +45,22 @@ export default {
 
     // Your dynamic “extra” values (from environment variables)
     extra: {
-      ARCHET_API_KEY: process.env.ARCHET_API_KEY,
       API_URL: process.env.API_URL,
       EXPO_OS: process.env.EXPO_OS || "android",
       NODE_ENV: process.env.NODE_ENV || "development",
-      __DEV__: process.env.NODE_ENV !== "production"
+      __DEV__: process.env.NODE_ENV !== "production",
+      GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID,
+      GOOGLE_IOS_CLIENT_ID: process.env.GOOGLE_IOS_CLIENT_ID,
+      FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID,
+      FACEBOOK_DISPLAY_NAME: process.env.FACEBOOK_DISPLAY_NAME || "MooseTicket"
     },
 
     // Any Expo plugins you need
     plugins: [
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-google-signin/google-signin",
+      "expo-apple-authentication"
       // (if you add other plugins later, list them here)
     ],
     doctor: {

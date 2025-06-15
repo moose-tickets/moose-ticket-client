@@ -19,7 +19,7 @@ import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedScrollView } f
 import { useTheme } from '../../wrappers/ThemeProvider';
 import { useBotCheck } from '../../hooks/UseBotCheck';
 import { useRateLimit } from '../../hooks/useRateLimit';
-import { RateLimitType } from '../../services/arcjetSecurity';
+import { SecurityActionType } from '../../services/unifiedSecurityService';
 import { validateCreditCard, validateCVV, validateRequired } from '../../utils/validators';
 import { sanitizeCreditCard, sanitizeCVV, sanitizeName, sanitizeFormData, redactForLogging } from '../../utils/sanitize';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -56,7 +56,7 @@ export default function AddCard() {
     type: "warning" as "success" | "error" | "info" | "warning",
   });
 
-  // Arcjet security hooks
+  // Security hooks
   const { checkBot, isHuman, riskLevel } = useBotCheck({
     onBotDetected: (context) => {
       setDialogProps({
@@ -69,7 +69,7 @@ export default function AddCard() {
   });
 
   const { executeWithRateLimit, isRateLimited } = useRateLimit({
-    type: RateLimitType.PAYMENT_SUBMIT,
+    type: SecurityActionType.PAYMENT_ATTEMPT,
     onRateLimited: (result) => {
       setDialogProps({
         title: "Too Many Payment Attempts",

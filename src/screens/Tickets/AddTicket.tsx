@@ -19,7 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedCard, ThemedScrollView } from '../../components/ThemedComponents';
 import { useBotCheck } from '../../hooks/UseBotCheck';
 import { useRateLimit } from '../../hooks/useRateLimit';
-import { RateLimitType } from '../../services/arcjetSecurity';
+import { SecurityActionType } from '../../services/unifiedSecurityService';
 import { validateLicensePlate, validateRequired } from '../../utils/validators';
 import { sanitizeLicensePlate, sanitizeUserContent, sanitizeFileName } from '../../utils/sanitize';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -55,7 +55,7 @@ export default function AddTicket() {
     type: 'info' as 'success' | 'error' | 'info' | 'warning',
   });
 
-  // Arcjet security hooks
+  // Security hooks
   const { checkBot, isHuman, riskLevel } = useBotCheck({
     onBotDetected: (context) => {
       setDialogProps({
@@ -68,7 +68,7 @@ export default function AddTicket() {
   });
 
   const { executeWithRateLimit, isRateLimited } = useRateLimit({
-    type: RateLimitType.TICKET_CREATE,
+    type: SecurityActionType.API_REQUEST,
     onRateLimited: (result) => {
       setDialogProps({
         title: "Too Many Submissions",

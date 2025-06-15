@@ -1,5 +1,5 @@
 // src/utils/sanitize.ts
-import ArcjetSecurity from '../services/arcjetSecurity';
+import unifiedSecurityService from '../services/unifiedSecurityService';
 
 export interface SanitizationOptions {
   allowHTML?: boolean;
@@ -56,7 +56,7 @@ export const sanitizeInput = (
 
   // Remove emojis if specified
   if (options.removeEmojis) {
-    sanitized = sanitized.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu, '');
+    sanitized = sanitized.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]+/g, '');
   }
 
   // Convert to lowercase if specified
@@ -235,8 +235,8 @@ export const sanitizeFormData = (
   return sanitized;
 };
 
-// Deep sanitization with Arcjet protection
-export const sanitizeWithArcjetProtection = async (
+// Deep sanitization with advanced threat protection
+export const sanitizeWithThreatProtection = async (
   input: string,
   options: SanitizationOptions = {}
 ): Promise<{ sanitized: string; threat: 'none' | 'low' | 'medium' | 'high' | 'critical'; blocked: boolean }> => {
@@ -244,16 +244,16 @@ export const sanitizeWithArcjetProtection = async (
   const basicSanitized = sanitizeInput(input, options);
 
   try {
-    // Then check with Arcjet for advanced threats
-    const attackResult = await ArcjetSecurity.protectAgainstAttacks(basicSanitized);
+    // Then check with unified security service for advanced threats
+    const attackResult = await unifiedSecurityService.analyzeThreat(basicSanitized);
 
     return {
       sanitized: basicSanitized,
-      threat: attackResult.threat,
+      threat: attackResult.isThreat ? attackResult.severity : 'none',
       blocked: attackResult.blocked
     };
   } catch (error) {
-    console.error('Arcjet protection error:', error);
+    console.error('Threat protection error:', error);
     return {
       sanitized: basicSanitized,
       threat: 'none',
@@ -264,7 +264,8 @@ export const sanitizeWithArcjetProtection = async (
 
 // Redact sensitive data for logging
 export const redactForLogging = (data: Record<string, any>): Record<string, any> => {
-  return ArcjetSecurity.redactSensitiveData(data, [
+  // Built-in redaction for sensitive data
+  const sensitiveFields = [
     'password',
     'confirmPassword',
     'currentPassword',
@@ -276,7 +277,37 @@ export const redactForLogging = (data: Record<string, any>): Record<string, any>
     'socialSecurityNumber',
     'bankAccount',
     'routingNumber'
-  ]);
+  ];
+
+  const redacted: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    const lowerKey = key.toLowerCase();
+    const isSensitive = sensitiveFields.some(field => 
+      lowerKey.includes(field.toLowerCase())
+    );
+
+    if (isSensitive) {
+      if (typeof value === 'string' && value.length > 0) {
+        // Show first 2 and last 2 characters for strings
+        if (value.length <= 4) {
+          redacted[key] = '***';
+        } else {
+          redacted[key] = `${value.slice(0, 2)}***${value.slice(-2)}`;
+        }
+      } else {
+        redacted[key] = '***';
+      }
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Recursively redact nested objects
+      redacted[key] = redactForLogging(value);
+    } else {
+      // Non-sensitive data passes through unchanged
+      redacted[key] = value;
+    }
+  }
+
+  return redacted;
 };
 
 // URL sanitization

@@ -1,6 +1,6 @@
 // src/services/fileService.ts
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   FileUploadResponse,
   UploadProgressEvent,
@@ -129,8 +129,8 @@ class FileService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FILE_UPLOAD,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.FILE_UPLOAD,
         { 
           filename: file.name,
           fileSize: file.size,
@@ -144,7 +144,7 @@ class FileService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -237,8 +237,8 @@ class FileService {
 
       // 2. Perform security checks
       const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FILE_UPLOAD,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.FILE_UPLOAD,
         { 
           fileCount: files.length,
           totalSize,
@@ -251,7 +251,7 @@ class FileService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -363,8 +363,8 @@ class FileService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'delete_file', fileId }
       );
 
@@ -372,7 +372,7 @@ class FileService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -410,8 +410,8 @@ class FileService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.SEARCH_QUERY,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'generate_download_url', fileId, expiresIn }
       );
 
@@ -419,7 +419,7 @@ class FileService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -488,8 +488,8 @@ class FileService {
       }
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'process_image', fileId, options: sanitizedOptions }
       );
 
@@ -497,7 +497,7 @@ class FileService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -598,8 +598,8 @@ class FileService {
       };
 
       // 4. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -607,7 +607,7 @@ class FileService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 

@@ -1,5 +1,5 @@
 // src/utils/validators.ts
-import ArcjetSecurity, { EmailValidationResult } from '../services/arcjetSecurity';
+// Email validation now handled internally without external dependencies
 
 export interface ValidationResult {
   isValid: boolean;
@@ -28,12 +28,12 @@ export interface PhoneValidationOptions {
   country?: string;
 }
 
-// Email validation with Arcjet
+// Email validation with basic checks
 export const validateEmail = async (
   email: string, 
   options: EmailValidationOptions = {}
-): Promise<ValidationResult & { emailResult?: EmailValidationResult }> => {
-  const { required = true, allowDisposable = false, minScore = 0.5 } = options;
+): Promise<ValidationResult> => {
+  const { required = true, allowDisposable = false } = options;
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -48,34 +48,34 @@ export const validateEmail = async (
   }
 
   try {
-    // Use Arcjet for comprehensive email validation
-    const emailResult = await ArcjetSecurity.validateEmail(email.trim().toLowerCase());
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const trimmedEmail = email.trim().toLowerCase();
 
     // Basic format validation
-    if (!emailResult.isValid) {
+    if (!emailRegex.test(trimmedEmail)) {
       errors.push('Invalid email format');
     }
 
-    // Disposable email check
-    if (emailResult.isDisposable && !allowDisposable) {
-      errors.push('Disposable email addresses are not allowed');
-    }
-
-    // Score-based validation
-    if (emailResult.score < minScore) {
-      warnings.push('Email address may not be reliable');
+    // Basic disposable email check (simplified)
+    if (!allowDisposable) {
+      const disposableDomains = ['10minutemail.com', 'tempmail.org', 'guerrillamail.com'];
+      const domain = trimmedEmail.split('@')[1];
+      if (domain && disposableDomains.includes(domain)) {
+        errors.push('Disposable email addresses are not allowed');
+      }
     }
 
     // Domain validation
-    if (emailResult.domain && emailResult.domain.length < 3) {
+    const domain = trimmedEmail.split('@')[1];
+    if (domain && domain.length < 3) {
       errors.push('Invalid email domain');
     }
 
     return {
       isValid: errors.length === 0,
       errors,
-      warnings,
-      emailResult
+      warnings
     };
   } catch (error) {
     console.error('Email validation error:', error);

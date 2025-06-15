@@ -1,6 +1,6 @@
 // src/services/ticketService.ts
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   Ticket,
   CreateTicketRequest,
@@ -64,8 +64,8 @@ class TicketService {
       if (params?.city) sanitizedParams.city = sanitizeUserContent(params.city);
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.SEARCH_QUERY,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedParams
       );
 
@@ -73,7 +73,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -108,8 +108,8 @@ class TicketService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.SEARCH_QUERY,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'get_ticket', ticketId }
       );
 
@@ -117,7 +117,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -189,8 +189,8 @@ class TicketService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.TICKET_CREATE,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -198,7 +198,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -298,8 +298,8 @@ class TicketService {
       }
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -307,7 +307,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -346,8 +346,8 @@ class TicketService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'delete_ticket', ticketId }
       );
 
@@ -355,7 +355,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -415,8 +415,8 @@ class TicketService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
         sanitizedData
       );
 
@@ -424,7 +424,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -505,8 +505,8 @@ class TicketService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.DISPUTE_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -514,7 +514,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -682,8 +682,8 @@ class TicketService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FILE_UPLOAD,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.FILE_UPLOAD,
         { 
           disputeId, 
           fileCount: evidenceFiles.length,
@@ -695,7 +695,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -799,8 +799,8 @@ class TicketService {
         jurisdiction: jurisdiction.trim().toUpperCase(),
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.SEARCH_QUERY,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -808,7 +808,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -846,8 +846,8 @@ class TicketService {
         updates: updates,
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -855,7 +855,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -891,8 +891,8 @@ class TicketService {
         ticketIds: ticketIds.map(id => id.trim()),
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -900,7 +900,7 @@ class TicketService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 

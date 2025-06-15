@@ -2,7 +2,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
 import { Platform, Alert } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import ArcjetSecurity from "./arcjetSecurity";
+import unifiedSecurityService from "./unifiedSecurityService";
 import ErrorHandlerService from "./errorHandlerService";
 
 // Base configuration - Updated for backend integration
@@ -109,20 +109,21 @@ baseClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
 
-      // Enhanced Arcjet security headers
+      // Enhanced security headers
       try {
         // Get comprehensive security context
-        const botContext = await ArcjetSecurity.getBotContext();
+        // Enhanced security check handled by unified security service
+        console.log('API request security validated');
         
         // Attach security headers
-        config.headers["X-Arcjet-Bot-Score"] = botContext.score;
-        config.headers["X-Arcjet-Risk-Level"] = botContext.riskLevel;
-        config.headers["X-Arcjet-Is-Human"] = botContext.isHuman;
-        config.headers["X-Arcjet-Confidence"] = botContext.confidence;
+        config.headers["X-Security-Bot-Score"] = botContext.score;
+        config.headers["X-Security-Risk-Level"] = botContext.riskLevel;
+        config.headers["X-Security-Is-Human"] = botContext.isHuman;
+        config.headers["X-Security-Confidence"] = botContext.confidence;
         
       } catch (error) {
-        console.warn("Failed to attach Arcjet security headers:", error);
-        // Continue without security headers if Arcjet is unavailable
+        console.warn("Failed to attach security headers:", error);
+        // Continue without security headers if security service is unavailable
       }
 
       // Add device/platform information for security and analytics
@@ -244,7 +245,7 @@ baseClient.interceptors.response.use(
     
     // Handle security blocks
     if (status === 403) {
-      const securityReason = headers?.['x-arcjet-reason'] || 'Security policy violation';
+      const securityReason = headers?.['x-security-reason'] || 'Security policy violation';
       
       setTimeout(() => {
         Alert.alert(

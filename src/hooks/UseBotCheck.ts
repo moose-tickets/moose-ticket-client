@@ -1,9 +1,16 @@
 // src/hooks/useBotCheck.ts
 import { useState, useEffect, useCallback } from 'react';
-import ArcjetSecurity, { BotContext, SecurityContext } from '../services/arcjetSecurity';
+import unifiedSecurityService, { SecurityActionType } from '../services/unifiedSecurityService';
+
+export interface BotContext {
+  score: number;
+  isHuman: boolean;
+  confidence: 'low' | 'medium' | 'high';
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+}
 
 export interface UseBotCheckOptions {
-  context?: SecurityContext;
+  context?: Record<string, any>;
   autoCheck?: boolean;
   onBotDetected?: (context: BotContext) => void;
   onHumanVerified?: (context: BotContext) => void;
@@ -33,7 +40,17 @@ export const useBotCheck = (options: UseBotCheckOptions = {}): UseBotCheckReturn
     setIsChecking(true);
     
     try {
-      const result = await ArcjetSecurity.getBotContext(context);
+      // Use unified security service for comprehensive device checks
+      const securityResult = await unifiedSecurityService.validateAction(SecurityActionType.API_REQUEST, undefined, context);
+      
+      // Convert security result to bot context format
+      const result: BotContext = {
+        score: securityResult.riskLevel === 'critical' ? 0.9 : securityResult.riskLevel === 'high' ? 0.7 : securityResult.riskLevel === 'medium' ? 0.4 : 0.1,
+        isHuman: securityResult.allowed,
+        confidence: securityResult.riskLevel === 'critical' ? 'high' : securityResult.riskLevel === 'high' ? 'medium' : 'low',
+        riskLevel: securityResult.riskLevel
+      };
+      
       setBotContext(result);
 
       // Trigger callbacks based on result
@@ -47,7 +64,7 @@ export const useBotCheck = (options: UseBotCheckOptions = {}): UseBotCheckReturn
     } catch (error) {
       console.error('Bot check failed:', error);
       const fallbackContext: BotContext = {
-        score: 1,
+        score: 0.1,
         isHuman: true,
         confidence: 'low',
         riskLevel: 'low'

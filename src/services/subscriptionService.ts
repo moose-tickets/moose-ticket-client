@@ -1,6 +1,6 @@
 // src/services/subscriptionService.ts
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   Subscription,
   SubscriptionPlan,
@@ -152,8 +152,8 @@ class SubscriptionService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
         sanitizedData
       );
 
@@ -161,7 +161,7 @@ class SubscriptionService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -235,8 +235,8 @@ class SubscriptionService {
       }
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -244,7 +244,7 @@ class SubscriptionService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -289,8 +289,8 @@ class SubscriptionService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'cancel_subscription', subscriptionId, ...sanitizedData }
       );
 
@@ -298,7 +298,7 @@ class SubscriptionService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -337,8 +337,8 @@ class SubscriptionService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'resume_subscription', subscriptionId }
       );
 
@@ -346,7 +346,7 @@ class SubscriptionService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -396,8 +396,8 @@ class SubscriptionService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
         sanitizedData
       );
 
@@ -405,7 +405,7 @@ class SubscriptionService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 

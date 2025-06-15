@@ -1,9 +1,79 @@
-import { Text, TouchableOpacity, View } from 'react-native';
-import React, { Component } from 'react';
+import { Text, TouchableOpacity, View, Alert, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import Svg, { Defs, LinearGradient, Stop, Path } from 'react-native-svg';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { loginWithOAuth } from '../../store/slices/authSlice';
+import { configureGoogleSignIn, isAppleSignInAvailable } from '../../utils/oauthHelpers';
+import { safeGoogleSignIn, safeAppleSignIn, safeFacebookSignIn, isOAuthAvailable } from '../../utils/oauthWrappers';
 
 export default function Passport({ text }: { text: string }) {
+  const dispatch = useAppDispatch();
+  const { isLoading } = useAppSelector(state => state.auth);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    // Configure Google Sign-In
+    configureGoogleSignIn();
+    
+    // Check Apple Sign-In availability
+    setAppleAvailable(isAppleSignInAvailable());
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await safeGoogleSignIn();
+      if (result.success && result.user && result.token) {
+        await dispatch(loginWithOAuth({
+          provider: 'google',
+          token: result.token,
+          userData: result.user
+        })).unwrap();
+        Alert.alert('Success', 'Successfully signed in with Google!');
+      } else {
+        Alert.alert('Error', result.error || 'Google Sign-In failed');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Google Sign-In failed');
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      const result = await safeAppleSignIn();
+      if (result.success && result.user && result.token) {
+        await dispatch(loginWithOAuth({
+          provider: 'apple',
+          token: result.token,
+          userData: result.user
+        })).unwrap();
+        Alert.alert('Success', 'Successfully signed in with Apple!');
+      } else {
+        Alert.alert('Error', result.error || 'Apple Sign-In failed');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Apple Sign-In failed');
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    try {
+      const result = await safeFacebookSignIn();
+      if (result.success && result.user && result.token) {
+        await dispatch(loginWithOAuth({
+          provider: 'facebook',
+          token: result.token,
+          userData: result.user
+        })).unwrap();
+        Alert.alert('Success', 'Successfully signed in with Facebook!');
+      } else {
+        Alert.alert('Error', result.error || 'Facebook Sign-In failed');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Facebook Sign-In failed');
+    }
+  };
+
   return (
     <View>
       <View className='flex-row items-center justify-center my-5'>
@@ -14,32 +84,29 @@ export default function Passport({ text }: { text: string }) {
 
       <View className='flex-row justify-center space-x-6 mb-6'>
         <TouchableOpacity
-          className='bg-gray-200 py-2 rounded-xl items-center mb-6 px-6 mx-3'
-          onPress={() => {
-            /* handle login */
-          }}
+          className={`bg-gray-200 py-2 rounded-xl items-center mb-6 px-6 mx-3 ${isLoading ? 'opacity-50' : ''}`}
+          onPress={handleGoogleSignIn}
+          disabled={isLoading}
         >
           <View className='w-10 h-10 rounded-full items-center justify-center'>
             <GoogleGIcon />
           </View>
-
-          {/* <FontAwesome name='google' size={26} color='#333'/> */}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          className='bg-gray-200 py-2 rounded-xl items-center mb-6 px-6 mx-3'
-          onPress={() => {
-            /* handle login */
-          }}
-        >
-          <FontAwesome name='apple' size={26} color='black' />
-        </TouchableOpacity>
+        {appleAvailable && (
+          <TouchableOpacity
+            className={`bg-gray-200 py-2 rounded-xl items-center mb-6 px-6 mx-3 ${isLoading ? 'opacity-50' : ''}`}
+            onPress={handleAppleSignIn}
+            disabled={isLoading}
+          >
+            <FontAwesome name='apple' size={26} color='black' />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
-          className='bg-gray-200 py-2 rounded-xl items-center mb-6 px-6 mx-3'
-          onPress={() => {
-            /* handle login */
-          }}
+          className={`bg-gray-200 py-2 rounded-xl items-center mb-6 px-6 mx-3 ${isLoading ? 'opacity-50' : ''}`}
+          onPress={handleFacebookSignIn}
+          disabled={isLoading}
         >
           <FontAwesome name='facebook' size={26} color='#1877F2' />
         </TouchableOpacity>

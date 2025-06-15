@@ -1,11 +1,19 @@
 // src/hooks/useRateLimit.ts
 import { useState, useCallback, useRef } from 'react';
-import ArcjetSecurity, { RateLimitType, RateLimitResult, SecurityContext } from '../services/arcjetSecurity';
+import unifiedSecurityService, { SecurityActionType } from '../services/unifiedSecurityService';
+
+export interface SecurityResult {
+  allowed: boolean;
+  reason?: string;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  resetTime?: Date;
+  remaining?: number;
+}
 
 export interface UseRateLimitOptions {
-  type: RateLimitType;
-  context?: SecurityContext;
-  onRateLimited?: (result: RateLimitResult) => void;
+  type: SecurityActionType;
+  context?: Record<string, any>;
+  onRateLimited?: (result: SecurityResult) => void;
   onAllowed?: () => void;
 }
 
@@ -13,7 +21,7 @@ export interface UseRateLimitReturn {
   isRateLimited: boolean;
   remaining: number;
   resetTime: Date | null;
-  checkRateLimit: () => Promise<RateLimitResult>;
+  checkRateLimit: () => Promise<SecurityResult>;
   executeWithRateLimit: <T>(fn: () => Promise<T>) => Promise<T>;
   reset: () => void;
 }
@@ -26,13 +34,13 @@ export const useRateLimit = (options: UseRateLimitOptions): UseRateLimitReturn =
   const [resetTime, setResetTime] = useState<Date | null>(null);
   const lastCheckRef = useRef<number>(0);
 
-  const checkRateLimit = useCallback(async (): Promise<RateLimitResult> => {
+  const checkRateLimit = useCallback(async (): Promise<SecurityResult> => {
     try {
-      const result = await ArcjetSecurity.checkRateLimit(type, context);
+      const result = await unifiedSecurityService.validateAction(type, undefined, context);
       
       setIsRateLimited(!result.allowed);
-      setRemaining(result.remaining);
-      setResetTime(result.resetTime);
+      setRemaining(result.remaining || 0);
+      setResetTime(result.resetTime || null);
       lastCheckRef.current = Date.now();
 
       if (!result.allowed) {
@@ -45,11 +53,11 @@ export const useRateLimit = (options: UseRateLimitOptions): UseRateLimitReturn =
     } catch (error) {
       console.error('Rate limit check failed:', error);
       // Fail open - allow the request
-      const fallbackResult: RateLimitResult = {
+      const fallbackResult: SecurityResult = {
         allowed: true,
+        riskLevel: 'low',
         remaining: 999,
-        resetTime: new Date(Date.now() + 60000),
-        limit: 999
+        resetTime: new Date(Date.now() + 60000)
       };
       return fallbackResult;
     }
@@ -59,7 +67,8 @@ export const useRateLimit = (options: UseRateLimitOptions): UseRateLimitReturn =
     const rateLimitResult = await checkRateLimit();
     
     if (!rateLimitResult.allowed) {
-      throw new Error(`Rate limit exceeded. Try again after ${rateLimitResult.resetTime.toLocaleTimeString()}`);
+      const resetTimeStr = rateLimitResult.resetTime?.toLocaleTimeString() || 'later';
+      throw new Error(`Rate limit exceeded. Try again after ${resetTimeStr}`);
     }
 
     return await fn();
@@ -85,14 +94,15 @@ export const useRateLimit = (options: UseRateLimitOptions): UseRateLimitReturn =
 // Higher-order function for wrapping API calls with rate limiting
 export const withRateLimit = <T extends any[], R>(
   fn: (...args: T) => Promise<R>,
-  rateLimitType: RateLimitType,
-  context?: SecurityContext
+  rateLimitType: SecurityActionType,
+  context?: Record<string, any>
 ) => {
   return async (...args: T): Promise<R> => {
-    const rateLimitResult = await ArcjetSecurity.checkRateLimit(rateLimitType, context);
+    const rateLimitResult = await unifiedSecurityService.validateAction(rateLimitType, undefined, context);
     
     if (!rateLimitResult.allowed) {
-      throw new Error(`Rate limit exceeded. Try again after ${rateLimitResult.resetTime.toLocaleTimeString()}`);
+      const resetTimeStr = rateLimitResult.resetTime?.toLocaleTimeString() || 'later';
+      throw new Error(`Rate limit exceeded. Try again after ${resetTimeStr}`);
     }
 
     return await fn(...args);

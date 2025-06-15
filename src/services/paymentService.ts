@@ -1,6 +1,6 @@
 // src/services/paymentService.ts
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   PaymentMethod,
   CreatePaymentMethodRequest,
@@ -129,16 +129,17 @@ class PaymentService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
+        'payment_operation',
+        { action: 'payment_method' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
-          error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          error: 'Security validation failed',
+          message: securityResult.reason || 'Payment operation blocked for security reasons'
         };
       }
 
@@ -210,8 +211,8 @@ class PaymentService {
       }
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -219,7 +220,7 @@ class PaymentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -258,8 +259,8 @@ class PaymentService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'delete_payment_method', paymentMethodId }
       );
 
@@ -267,7 +268,7 @@ class PaymentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -305,8 +306,8 @@ class PaymentService {
       }
 
       // 2. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'set_default_payment', paymentMethodId }
       );
 
@@ -314,7 +315,7 @@ class PaymentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -424,8 +425,8 @@ class PaymentService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'refund_payment', paymentId, ...sanitizedData }
       );
 
@@ -433,7 +434,7 @@ class PaymentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -555,16 +556,17 @@ class PaymentService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
+        'payment_operation',
+        { action: 'payment_method' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
-          error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          error: 'Security validation failed',
+          message: securityResult.reason || 'Payment operation blocked for security reasons'
         };
       }
 
@@ -619,8 +621,8 @@ class PaymentService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'cancel_subscription', subscriptionId, ...sanitizedData }
       );
 
@@ -628,7 +630,7 @@ class PaymentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -664,16 +666,17 @@ class PaymentService {
         metadata: metadata || {},
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
+        'payment_operation',
+        { action: 'payment_method' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
-          error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          error: 'Security validation failed',
+          message: securityResult.reason || 'Payment operation blocked for security reasons'
         };
       }
 
@@ -701,16 +704,17 @@ class PaymentService {
         customerId: customerId?.trim(),
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
+        'payment_operation',
+        { action: 'payment_method' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
-          error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          error: 'Security validation failed',
+          message: securityResult.reason || 'Payment operation blocked for security reasons'
         };
       }
 
@@ -780,16 +784,17 @@ class PaymentService {
         firstPaymentDate: (val: string) => val.trim(),
       });
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PAYMENT_SUBMIT,
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PAYMENT_ATTEMPT,
+        'payment_operation',
+        { action: 'payment_method' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
-          error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          error: 'Security validation failed',
+          message: securityResult.reason || 'Payment operation blocked for security reasons'
         };
       }
 

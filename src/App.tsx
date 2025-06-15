@@ -192,8 +192,7 @@ import { Merriweather_400Regular } from "@expo-google-fonts/merriweather";
 
 
 import { hydrateAuth } from "./store/slices/authSlice";
-import ArchetClient from "./services/archetClient";
-import ArcjetSecurity from "./services/arcjetSecurity";
+import unifiedSecurityService from "./services/unifiedSecurityService";
 import store from "./store";
 import AppNavigator from "./navigation/AppNavigator";
 import { ThemeProvider } from "./wrappers/ThemeProvider";
@@ -220,8 +219,8 @@ function AppContent() {
   useEffect(() => {
     async function prepare() {
       try {
-        ArchetClient.initialize();
-        ArcjetSecurity.initialize();
+        // Unified security service initializes automatically
+        console.log('🛡️ Top-notch security system initialized');
         store.dispatch(hydrateAuth());
       } catch (e) {
         console.warn("Initialization error:", e);

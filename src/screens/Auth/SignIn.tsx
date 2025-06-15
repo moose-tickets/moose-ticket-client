@@ -10,14 +10,15 @@ import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useAuthStackNavigation } from '../../navigation/hooks';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import useStatusBarFix from '../../hooks/useStatusBarFix';
-import { ThemedView, ThemedText, ThemedButton, ThemedInput } from '../../components/ThemedComponents';
+import { ThemedView, ThemedText, ThemedButton } from '../../components/ThemedComponents';
+import InputField from '../../components/InputField';
 import App from '../../App';
 import AppLayout from '../../wrappers/layout';
 import Passport from './Passport';
 import Dialog from '../../components/Dialog';
 import { useBotCheck } from '../../hooks/UseBotCheck';
 import { useRateLimit } from '../../hooks/useRateLimit';
-import { RateLimitType } from '../../services/arcjetSecurity';
+import { SecurityActionType } from '../../services/unifiedSecurityService';
 import { validateEmail, validateRequired } from '../../utils/validators';
 import { sanitizeEmail, sanitizePassword } from '../../utils/sanitize';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -35,7 +36,6 @@ export default function SignIn() {
   useStatusBarFix();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({
@@ -44,7 +44,7 @@ export default function SignIn() {
     type: "info" as "success" | "error" | "info" | "warning",
   });
 
-  // Arcjet security hooks
+  // Security hooks
   const { checkBot, isHuman, riskLevel } = useBotCheck({
     onBotDetected: (context) => {
       setDialogProps({
@@ -57,11 +57,12 @@ export default function SignIn() {
   });
 
   const { executeWithRateLimit, isRateLimited, remaining } = useRateLimit({
-    type: RateLimitType.AUTH_LOGIN,
+    type: SecurityActionType.AUTH_LOGIN,
     onRateLimited: (result) => {
+      const resetTimeStr = result.resetTime?.toLocaleTimeString() || 'later';
       setDialogProps({
         title: "Too Many Attempts",
-        message: `Please wait before trying again. You can try again after ${result.resetTime.toLocaleTimeString()}`,
+        message: `Please wait before trying again. You can try again after ${resetTimeStr}`,
         type: "warning",
       });
       setDialogVisible(true);
@@ -197,66 +198,40 @@ export default function SignIn() {
           Sign In
         </ThemedText>
 
-        {/* Email */}
-        <ThemedView className="mb-4 ">
-        <ThemedView className="flex-row items-center border border-border bg-background-secondary rounded-xl px-2">
-            <ThemedInput
-              placeholder='e.g., user@example.com'
-              value={email}
-              onChangeText={(text) => {
-                setEmail(sanitizeEmail(text));
-                // Clear email errors when user starts typing
-                if (validationErrors.email) {
-                  setValidationErrors(prev => ({ ...prev, email: [] }));
-                }
-              }}
-              keyboardType='email-address'
-              autoCapitalize='none'
-              className='flex-1'
-            />
-                <Ionicons
-                      name='mail'
-                      size={20}
-                      color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'}
-                    />
-              </ThemedView>
-            {validationErrors.email && validationErrors.email.length > 0 && (
-              <ThemedText variant="error" size="xs" className="mt-1 ml-1 px-2">
-                {validationErrors.email[0]}
-              </ThemedText>
-            )}
-        </ThemedView>
+        <InputField
+          label="Email"
+          placeholder="e.g., user@example.com"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(sanitizeEmail(text));
+            // Clear email errors when user starts typing
+            if (validationErrors.email) {
+              setValidationErrors(prev => ({ ...prev, email: [] }));
+            }
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          icon="mail-outline"
+          error={validationErrors.email && validationErrors.email.length > 0 ? validationErrors.email[0] : undefined}
+          className="mb-4"
+        />
 
-        {/* Password */}
-        <ThemedView className="mb-2">
-          <ThemedView className="flex-row items-center border border-border bg-background-secondary rounded-xl px-2">
-            <ThemedInput
-              placeholder='Password'
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                // Clear password errors when user starts typing
-                if (validationErrors.password) {
-                  setValidationErrors(prev => ({ ...prev, password: [] }));
-                }
-              }}
-              className="flex-1 border-0 bg-transparent p-0"
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={theme === 'dark' ? '#9CA3AF' : '#A0A0A0'}
-              />
-            </TouchableOpacity>
-          </ThemedView>
-          {validationErrors.password && validationErrors.password.length > 0 && (
-            <ThemedText variant="error" size="xs" className="mt-1 ml-1 px-2">
-              {validationErrors.password[0]}
-            </ThemedText>
-          )}
-        </ThemedView>
+        <InputField
+          label="Password"
+          placeholder="Password"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            // Clear password errors when user starts typing
+            if (validationErrors.password) {
+              setValidationErrors(prev => ({ ...prev, password: [] }));
+            }
+          }}
+          isPassword
+          icon="lock-closed-outline"
+          error={validationErrors.password && validationErrors.password.length > 0 ? validationErrors.password[0] : undefined}
+          className="mb-2"
+        />
 
         {/* Forgot Password */}
         <ThemedView className="w-full items-end mb-6">

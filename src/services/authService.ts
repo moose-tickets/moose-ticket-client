@@ -1,7 +1,7 @@
 // src/services/authService.ts
 import * as SecureStore from "expo-secure-store";
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   LoginRequest, 
   LoginResponse, 
@@ -134,9 +134,9 @@ class AuthService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.AUTH_LOGIN,
-        sanitizedCredentials,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.AUTH_LOGIN,
+        sanitizedCredentials.email,
         { userId: sanitizedCredentials.email }
       );
 
@@ -144,7 +144,7 @@ class AuthService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security check failed'
         };
       }
 
@@ -234,9 +234,9 @@ class AuthService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.AUTH_SIGNUP,
-        sanitizedData,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.AUTH_REGISTER,
+        sanitizedData.email,
         { userId: sanitizedData.email }
       );
 
@@ -244,7 +244,7 @@ class AuthService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security check failed'
         };
       }
 
@@ -314,9 +314,9 @@ class AuthService {
       const sanitizedEmail = sanitizeEmail(email);
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.AUTH_FORGOT_PASSWORD,
-        { email: sanitizedEmail },
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PASSWORD_RESET,
+        sanitizedEmail,
         { userId: sanitizedEmail }
       );
 
@@ -324,7 +324,7 @@ class AuthService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security check failed'
         };
       }
 
@@ -384,16 +384,17 @@ class AuthService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.AUTH_LOGIN, // Use login rate limit for password reset
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PASSWORD_RESET,
+        undefined,
+        { action: 'reset_password' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security check failed'
         };
       }
 
@@ -463,16 +464,17 @@ class AuthService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PROFILE_UPDATE,
-        sanitizedData
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PROFILE_UPDATE,
+        undefined,
+        { action: 'change_password' }
       );
 
       if (!securityResult.allowed) {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security check failed'
         };
       }
 
@@ -679,6 +681,80 @@ class AuthService {
         return `${baseUrl}${AUTH_ENDPOINTS.OAUTH_APPLE}`;
       default:
         throw new Error(`Unsupported OAuth provider: ${provider}`);
+    }
+  }
+
+  // OAuth Login Methods
+  async loginWithOAuth(provider: 'google' | 'facebook' | 'apple', token: string, userData?: any): Promise<ApiResponse<LoginResponse>> {
+    try {
+      // 1. Perform security checks
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.AUTH_LOGIN,
+        userData?.email || `${provider}_user`,
+        { provider, oauthLogin: true }
+      );
+
+      if (!securityResult.allowed) {
+        return {
+          success: false,
+          error: 'Security check failed',
+          message: securityResult.reason || 'Security check failed'
+        };
+      }
+
+      // 2. Send OAuth data to backend
+      const response = await apiClient.post(AUTH_ENDPOINTS.OAUTH_GOOGLE, {
+        provider,
+        token,
+        userData,
+      });
+
+      if (response.data?.success && response.data?.data) {
+        const { user, token: authToken, refreshToken } = response.data.data;
+        
+        // Store tokens securely
+        await this.storeTokens(authToken, refreshToken);
+        await this.storeUser(user);
+
+        console.log(`✅ OAuth ${provider} login successful for:`, redactForLogging(user));
+        
+        return {
+          success: true,
+          data: { user, token: authToken, refreshToken },
+          message: `Successfully signed in with ${provider}`
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data?.error || `${provider} authentication failed`,
+        message: response.data?.message || `Failed to authenticate with ${provider}`
+      };
+
+    } catch (error: any) {
+      console.error(`❌ OAuth ${provider} login error:`, error);
+      
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Invalid OAuth credentials',
+          message: 'The OAuth token is invalid or expired'
+        };
+      }
+
+      if (error.response?.status === 429) {
+        return {
+          success: false,
+          error: 'Too many requests',
+          message: 'Please wait before trying again'
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Network error',
+        message: `Failed to connect to authentication server for ${provider} login`
+      };
     }
   }
 }

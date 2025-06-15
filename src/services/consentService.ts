@@ -1,6 +1,6 @@
 // src/services/consentService.ts
 import apiClient from "./apiClients";
-import ArcjetSecurity, { RateLimitType } from "./arcjetSecurity";
+import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   ApiResponse,
   PaginationParams
@@ -166,8 +166,8 @@ class ConsentService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -175,7 +175,7 @@ class ConsentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -230,8 +230,8 @@ class ConsentService {
       };
 
       // 3. Perform security checks
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'withdraw_consent', recordId, ...sanitizedData }
       );
 
@@ -239,7 +239,7 @@ class ConsentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -448,8 +448,8 @@ class ConsentService {
         metadata: request.metadata || {},
       }));
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         { action: 'bulk_consent', requestCount: sanitizedRequests.length }
       );
 
@@ -457,7 +457,7 @@ class ConsentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -484,8 +484,8 @@ class ConsentService {
     try {
       const sanitizedData = { format };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -493,7 +493,7 @@ class ConsentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -521,8 +521,8 @@ class ConsentService {
         reason: reason ? sanitizeUserContent(reason) : undefined,
       };
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.FORM_SUBMIT,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.API_REQUEST,
         sanitizedData
       );
 
@@ -530,7 +530,7 @@ class ConsentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
@@ -579,8 +579,8 @@ class ConsentService {
         marketing: (val: boolean) => val,
       });
 
-      const securityResult = await ArcjetSecurity.performSecurityCheck(
-        RateLimitType.PROFILE_UPDATE,
+      const securityResult = await unifiedSecurityService.validateAction(
+        SecurityActionType.PROFILE_UPDATE,
         sanitizedData
       );
 
@@ -588,7 +588,7 @@ class ConsentService {
         return {
           success: false,
           error: 'Unable to make Request',
-          message: securityResult.errors.join(', ')
+          message: securityResult.reason || 'Security validation failed'
         };
       }
 
