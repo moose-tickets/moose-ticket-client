@@ -59,7 +59,14 @@ const refreshToken = async (): Promise<string | null> => {
       });
 
       if (refreshResponse.data.success) {
-        const { token: newToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
+        // Handle both old and new response formats
+        const responseData = refreshResponse.data.data;
+        const newToken = responseData.tokens?.accessToken || responseData.token;
+        const newRefreshToken = responseData.tokens?.refreshToken || responseData.refreshToken;
+        
+        if (!newToken || !newRefreshToken) {
+          throw new Error("Invalid token refresh response format");
+        }
         
         // Store new tokens
         await Promise.all([

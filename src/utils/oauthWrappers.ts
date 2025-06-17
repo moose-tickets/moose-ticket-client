@@ -25,7 +25,7 @@ export const safeGoogleSignIn = async () => {
   }
   
   try {
-    const { signInWithGoogle } = await import('./oauthHelpers');
+    const { signInWithGoogle } = require('./oauthHelpers');
     return await signInWithGoogle();
   } catch (error: any) {
     console.error('Google Sign-In error:', error);
@@ -45,7 +45,7 @@ export const safeAppleSignIn = async () => {
   }
   
   try {
-    const { signInWithApple } = await import('./oauthHelpers');
+    const { signInWithApple } = require('./oauthHelpers');
     return await signInWithApple();
   } catch (error: any) {
     console.error('Apple Sign-In error:', error);
@@ -60,7 +60,7 @@ export const safeFacebookSignIn = async () => {
   }
   
   try {
-    const { signInWithFacebook } = await import('./oauthHelpers');
+    const { signInWithFacebook } = require('./oauthHelpers');
     return await signInWithFacebook();
   } catch (error: any) {
     console.error('Facebook Sign-In error:', error);

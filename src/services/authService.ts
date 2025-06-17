@@ -56,10 +56,23 @@ class AuthService {
   // Token Management
   private async storeTokens(loginResponse: LoginResponse): Promise<void> {
     try {
+      // Handle both formats: backend returns { tokens: { accessToken, refreshToken } } 
+      // or direct { token, refreshToken }
+      const accessToken = loginResponse.tokens?.accessToken || loginResponse.token;
+      const refreshToken = loginResponse.tokens?.refreshToken || loginResponse.refreshToken;
+      
+      if (!accessToken || !refreshToken) {
+        throw new Error('Invalid token response format');
+      }
+
+      // Calculate expiry time (assuming 24h for access token if not provided)
+      const expiresAt = loginResponse.expiresAt || 
+        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
       await Promise.all([
-        SecureStore.setItemAsync(TOKEN_KEYS.ACCESS_TOKEN, loginResponse.token),
-        SecureStore.setItemAsync(TOKEN_KEYS.REFRESH_TOKEN, loginResponse.refreshToken),
-        SecureStore.setItemAsync(TOKEN_KEYS.TOKEN_EXPIRY, loginResponse.expiresAt),
+        SecureStore.setItemAsync(TOKEN_KEYS.ACCESS_TOKEN, accessToken),
+        SecureStore.setItemAsync(TOKEN_KEYS.REFRESH_TOKEN, refreshToken),
+        SecureStore.setItemAsync(TOKEN_KEYS.TOKEN_EXPIRY, expiresAt),
         SecureStore.setItemAsync(TOKEN_KEYS.USER_DATA, JSON.stringify(loginResponse.user)),
       ]);
     } catch (error) {
@@ -211,7 +224,9 @@ class AuthService {
           }
           return { isValid: true, errors: [] };
         },
-        fullName: (name: string) => validateRequired(name, 'Full name'),
+        firstName: (name: string) => validateRequired(name, 'First name'),
+        lastName: (name: string) => validateRequired(name, 'Last name'),
+        phone: (phone: string) => validateRequired(phone, 'Phone number'),
       };
 
       const formValidation = await validateForm(userData, validationRules);
@@ -228,9 +243,9 @@ class AuthService {
         email: sanitizeEmail(userData.email),
         password: sanitizePassword(userData.password),
         confirmPassword: sanitizePassword(userData.confirmPassword),
-        fullName: sanitizeName(userData.fullName),
-        licenseNumber: userData.licenseNumber?.trim().toUpperCase(),
-        phone: userData.phone?.replace(/\D/g, ''),
+        firstName: sanitizeName(userData.firstName),
+        lastName: sanitizeName(userData.lastName),
+        phone: userData.phone.trim(),
       };
 
       // 3. Perform security checks
@@ -520,11 +535,15 @@ class AuthService {
     }
   }
 
-  async refreshToken(): Promise<boolean> {
+  async refreshToken(refreshTokenParam?: string): Promise<ApiResponse<LoginResponse>> {
     try {
-      const refreshToken = await SecureStore.getItemAsync(TOKEN_KEYS.REFRESH_TOKEN);
+      const refreshToken = refreshTokenParam || await SecureStore.getItemAsync(TOKEN_KEYS.REFRESH_TOKEN);
       if (!refreshToken) {
-        return false;
+        return {
+          success: false,
+          error: 'No refresh token available',
+          message: 'No refresh token found'
+        };
       }
 
       const response = await apiClient.post<ApiResponse<LoginResponse>>(
@@ -535,14 +554,22 @@ class AuthService {
       if (response.data.success && response.data.data) {
         await this.storeTokens(response.data.data);
         console.log('Token refreshed successfully');
-        return true;
+        return response.data;
       }
 
-      return false;
-    } catch (error) {
+      return {
+        success: false,
+        error: 'Token refresh failed',
+        message: response.data.message || 'Unable to refresh token'
+      };
+    } catch (error: any) {
       console.error('Token refresh failed:', error);
       await this.clearTokens();
-      return false;
+      return {
+        success: false,
+        error: 'Network error',
+        message: 'Unable to refresh token. Please sign in again.'
+      };
     }
   }
 
@@ -564,8 +591,8 @@ class AuthService {
       
       if (error.response?.status === 401) {
         // Token expired, try to refresh
-        const refreshSuccess = await this.refreshToken();
-        if (refreshSuccess) {
+        const refreshResponse = await this.refreshToken();
+        if (refreshResponse.success) {
           // Retry the request
           return this.getCurrentUser();
         }
@@ -710,17 +737,21 @@ class AuthService {
       });
 
       if (response.data?.success && response.data?.data) {
-        const { user, token: authToken, refreshToken } = response.data.data;
+        const { user, tokens } = response.data.data;
         
-        // Store tokens securely
-        await this.storeTokens(authToken, refreshToken);
-        await this.storeUser(user);
+        // Store tokens securely using the correct format
+        await this.storeTokens({
+          user,
+          tokens,
+          token: tokens?.accessToken, // Legacy support
+          refreshToken: tokens?.refreshToken, // Legacy support
+        } as LoginResponse);
 
         console.log(`✅ OAuth ${provider} login successful for:`, redactForLogging(user));
         
         return {
           success: true,
-          data: { user, token: authToken, refreshToken },
+          data: { user, tokens },
           message: `Successfully signed in with ${provider}`
         };
       }

@@ -35,18 +35,23 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   user: User;
-  token: string;
-  refreshToken: string;
-  expiresAt: string;
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+  // Legacy support for different response formats
+  token?: string;
+  refreshToken?: string;
+  expiresAt?: string;
 }
 
 export interface SignUpRequest {
   email: string;
   password: string;
   confirmPassword: string;
-  fullName: string;
-  licenseNumber?: string;
-  phone?: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -69,9 +74,9 @@ export interface ChangePasswordRequest {
 export interface User {
   id: string;
   email: string;
-  fullName: string;
-  phone?: string;
-  licenseNumber?: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
   avatar?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
@@ -92,9 +97,9 @@ export interface UserPreferences {
 }
 
 export interface UpdateUserRequest {
-  fullName?: string;
+  firstName?: string;
+  lastName?: string;
   phone?: string;
-  licenseNumber?: string;
   avatar?: string;
 }
 

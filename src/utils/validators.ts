@@ -152,52 +152,6 @@ export const validatePassword = (
   return { isValid: errors.length === 0, errors, warnings };
 };
 
-// Phone number validation
-export const validatePhone = (
-  phone: string, 
-  options: PhoneValidationOptions = {}
-): ValidationResult => {
-  const { required = true, allowInternational = true, country = 'US' } = options;
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  if (required && (!phone || phone.trim().length === 0)) {
-    errors.push('Phone number is required');
-    return { isValid: false, errors, warnings };
-  }
-
-  if (!phone || phone.trim().length === 0) {
-    return { isValid: true, errors, warnings };
-  }
-
-  // Remove all non-digit characters for validation
-  const digitsOnly = phone.replace(/\D/g, '');
-
-  if (country === 'US') {
-    // US phone number validation (10 digits)
-    if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
-      // US number with country code
-      if (digitsOnly.length !== 11) {
-        errors.push('US phone number must be 10 digits (or 11 with country code)');
-      }
-    } else if (digitsOnly.length !== 10) {
-      errors.push('US phone number must be 10 digits');
-    }
-
-    // Area code validation (first digit can't be 0 or 1)
-    const areaCode = digitsOnly.slice(digitsOnly.length === 11 ? 1 : 0, digitsOnly.length === 11 ? 4 : 3);
-    if (areaCode.startsWith('0') || areaCode.startsWith('1')) {
-      errors.push('Invalid area code');
-    }
-  } else if (allowInternational) {
-    // International validation (basic)
-    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
-      errors.push('Phone number must be between 7-15 digits');
-    }
-  }
-
-  return { isValid: errors.length === 0, errors, warnings };
-};
 
 // Credit card validation (Luhn algorithm)
 export const validateCreditCard = (cardNumber: string): ValidationResult => {
@@ -244,6 +198,38 @@ export const validateCreditCard = (cardNumber: string): ValidationResult => {
 
   if (sum % 10 !== 0) {
     errors.push('Invalid card number');
+  }
+
+  return { isValid: errors.length === 0, errors, warnings };
+};
+
+// Phone number validation
+export const validatePhone = (phone: string, options: PhoneValidationOptions = {}): ValidationResult => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const { required = false, allowInternational = true } = options;
+
+  if (!phone || phone.trim().length === 0) {
+    if (required) {
+      errors.push('Phone number is required');
+    }
+    return { isValid: !required, errors, warnings };
+  }
+
+  const cleanPhone = phone.trim();
+
+  if (allowInternational) {
+    // International format validation: +[country code][number]
+    const internationalPattern = /^\+[1-9]\d{1,14}$/;
+    if (!internationalPattern.test(cleanPhone)) {
+      errors.push('Phone number must be in international format (e.g., +1234567890)');
+    }
+  } else {
+    // Basic phone validation for local numbers
+    const phonePattern = /^[\d\s\-\(\)]{10,15}$/;
+    if (!phonePattern.test(cleanPhone)) {
+      errors.push('Please enter a valid phone number');
+    }
   }
 
   return { isValid: errors.length === 0, errors, warnings };

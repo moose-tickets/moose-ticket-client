@@ -15,8 +15,8 @@ import AppLayout from "../../wrappers/layout";
 import Passport from "./Passport";
 import Dialog from "../../components/Dialog";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { signUp, clearError } from "../../store/slices/authSlice";
-import { validateEmail, validatePassword, validateRequired } from "../../utils/validators";
+import { signupUser, clearError } from "../../store/slices/authSlice";
+import { validateEmail, validatePassword, validateRequired, validatePhone } from "../../utils/validators";
 import { sanitizeEmail, sanitizePassword, sanitizeName } from "../../utils/sanitize";
 
 export default function SignUp() {
@@ -33,8 +33,8 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [licenseNumber, setLicenseNumber] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -77,6 +77,17 @@ export default function SignUp() {
     }
   }, [isAuthenticated, navigation]);
 
+  // Function to clear specific field error
+  const clearFieldError = (fieldName: string) => {
+    if (validationErrors[fieldName]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
+  };
+
   const validateForm = () => {
     const errors: Record<string, string[]> = {};
 
@@ -99,8 +110,8 @@ export default function SignUp() {
 
     // Validate required fields
     const requiredFields = [
-      { key: "fullName", value: fullName, label: "Full name" },
-      { key: "licenseNumber", value: licenseNumber, label: "License number" },
+      { key: "firstName", value: firstName, label: "First name" },
+      { key: "lastName", value: lastName, label: "Last name" },
     ];
 
     requiredFields.forEach(({ key, value, label }) => {
@@ -110,6 +121,12 @@ export default function SignUp() {
       }
     });
 
+    // Validate phone number
+    const phoneResult = validatePhone(phone, { required: true, allowInternational: true });
+    if (!phoneResult.isValid) {
+      errors.phone = phoneResult.errors;
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -118,9 +135,29 @@ export default function SignUp() {
     // Validate form
     const isValid = validateForm();
     if (!isValid) {
+      // Create detailed error message from validation errors
+      const errorMessages: string[] = [];
+      const fieldNames: Record<string, string> = {
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        email: 'Email',
+        password: 'Password',
+        confirmPassword: 'Confirm Password',
+        phone: 'Phone Number'
+      };
+      
+      Object.entries(validationErrors).forEach(([field, errors]) => {
+        if (errors && errors.length > 0) {
+          const fieldName = fieldNames[field] || field.charAt(0).toUpperCase() + field.slice(1);
+          errorMessages.push(`${fieldName}: ${errors.join(', ')}`);
+        }
+      });
+      
       setDialogProps({
-        title: "Validation Error",
-        message: "Please correct the errors and try again.",
+        title: "Validation Failed",
+        message: errorMessages.length > 0 
+          ? errorMessages.join('\n\n') 
+          : "Please check your input and try again.",
         type: "error",
       });
       setDialogVisible(true);
@@ -132,13 +169,16 @@ export default function SignUp() {
       const signUpData = {
         email: sanitizeEmail(email),
         password: sanitizePassword(password),
-        fullName: sanitizeName(fullName),
-        licenseNumber: licenseNumber.trim().toUpperCase(),
+        confirmPassword: sanitizePassword(confirmPassword),
+        firstName: sanitizeName(firstName),
+        lastName: sanitizeName(lastName),
         phone: phone.trim(),
+        agreeToTerms: true, // You may want to add checkbox for this
+        agreeToPrivacy: true, // You may want to add checkbox for this
       };
 
       // Dispatch sign up action
-      await dispatch(signUp(signUpData)).unwrap();
+      await dispatch(signupUser(signUpData)).unwrap();
 
       setDialogProps({
         title: "Account Created",
@@ -172,12 +212,30 @@ export default function SignUp() {
         </ThemedText>
 
         <InputField
-          label="Full Name"
-          placeholder="Enter your full name"
-          value={fullName}
-          onChangeText={setFullName}
+          label="First Name"
+          placeholder="Enter your first name"
+          value={firstName}
+          onChangeText={(text) => {
+            setFirstName(text);
+            clearFieldError('firstName');
+          }}
           icon="person-outline"
           required
+          error={validationErrors.firstName?.join(', ')}
+          className="mb-4"
+        />
+
+        <InputField
+          label="Last Name"
+          placeholder="Enter your last name"
+          value={lastName}
+          onChangeText={(text) => {
+            setLastName(text);
+            clearFieldError('lastName');
+          }}
+          icon="person-outline"
+          required
+          error={validationErrors.lastName?.join(', ')}
           className="mb-4"
         />
 
@@ -185,11 +243,15 @@ export default function SignUp() {
           label="Email"
           placeholder="Enter your email address"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            clearFieldError('email');
+          }}
           icon="mail-outline"
           keyboardType="email-address"
           autoCapitalize="none"
           required
+          error={validationErrors.email?.join(', ')}
           className="mb-4"
         />
 
@@ -200,10 +262,12 @@ export default function SignUp() {
           onChangeText={(txt: string) => {
             setPassword(txt);
             validatePasswordRules(txt);
+            clearFieldError('password');
           }}
           isPassword
           icon="lock-closed-outline"
           required
+          error={validationErrors.password?.join(', ')}
           className="mb-4"
         />
 
@@ -211,30 +275,29 @@ export default function SignUp() {
           label="Confirm Password"
           placeholder="Confirm your password"
           value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+            clearFieldError('confirmPassword');
+          }}
           isPassword
           icon="lock-closed-outline"
           required
+          error={validationErrors.confirmPassword?.join(', ')}
           className="mb-4"
         />
 
         <InputField
-          label="Phone Number (Optional)"
-          placeholder="Enter your phone number"
+          label="Phone Number"
+          placeholder="e.g., +1234567890"
           value={phone}
-          onChangeText={setPhone}
+          onChangeText={(text) => {
+            setPhone(text);
+            clearFieldError('phone');
+          }}
           icon="call-outline"
           keyboardType="phone-pad"
-          className="mb-4"
-        />
-
-        <InputField
-          label="License Number"
-          placeholder="Enter your license number"
-          value={licenseNumber}
-          onChangeText={setLicenseNumber}
-          icon="card-outline"
           required
+          error={validationErrors.phone?.join(', ')}
           className="mb-4"
         />
 

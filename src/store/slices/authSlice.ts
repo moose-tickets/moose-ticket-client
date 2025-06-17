@@ -6,10 +6,9 @@ import { ApiResponse } from '../../types/api';
 export interface User {
   id: string;
   email: string;
-  fullName: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
   role: 'user' | 'premium' | 'admin' | 'super_admin';
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
@@ -81,8 +80,9 @@ export const signupUser = createAsyncThunk(
     email: string;
     password: string;
     confirmPassword: string;
-    fullName: string;
-    phone?: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
     agreeToTerms: boolean;
     agreeToPrivacy: boolean;
   }, { rejectWithValue }) => {
@@ -359,8 +359,9 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        // Handle both old and new token formats
+        state.token = action.payload.tokens?.accessToken || action.payload.token;
+        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
         state.loginAttempts = 0;
@@ -380,8 +381,9 @@ const authSlice = createSlice({
       .addCase(signupUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        // Handle both old and new token formats
+        state.token = action.payload.tokens?.accessToken || action.payload.token;
+        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -398,8 +400,9 @@ const authSlice = createSlice({
       .addCase(loginWithOAuth.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        // Handle both old and new token formats
+        state.token = action.payload.tokens?.accessToken || action.payload.token;
+        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -430,8 +433,9 @@ const authSlice = createSlice({
       
       // Refresh token cases
       .addCase(refreshTokenThunk.fulfilled, (state, action) => {
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        // Handle both old and new token formats
+        state.token = action.payload.tokens?.accessToken || action.payload.token;
+        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
       })
