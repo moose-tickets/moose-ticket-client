@@ -16,6 +16,11 @@ export type AuthStackParamList = {
   Onboarding: undefined;
   Terms: undefined;
   Privacy: undefined;
+  EmailVerified: {
+    success?: string | boolean;
+    email?: string;
+    error?: string;
+  };
 };
 
 // Main Tab Navigator

@@ -172,15 +172,9 @@ export const refreshTokenThunk = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   'auth/logout',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const state = getState() as { auth: AuthState };
-      const refreshToken = state.auth.refreshToken;
-      
-      if (refreshToken) {
-        await authService.logout(refreshToken);
-      }
-      
+      await authService.logout();
       return true;
     } catch (error: any) {
       // Even if logout fails on server, clear local state

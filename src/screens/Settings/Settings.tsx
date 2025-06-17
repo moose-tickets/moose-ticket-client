@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettingsStackNavigation } from '../../navigation/hooks';
+import { useAppDispatch } from '../../store';
+import { logoutUser } from '../../store/slices/authSlice';
 import App from '../../App';
 import AppLayout from '../../wrappers/layout';
 import Header from '../../components/Header';
@@ -14,6 +16,7 @@ import { ThemedView, ThemedText, ThemedScrollView } from '../../components/Theme
 export default function SettingsScreen() {
   const navigation = useSettingsStackNavigation();
   const { theme, themeMode } = useTheme();
+  const dispatch = useAppDispatch();
 
   // Toggle states
   const [ticketAlerts, setTicketAlerts] = useState(false);
@@ -22,11 +25,43 @@ export default function SettingsScreen() {
   const [faceIdEnabled, setFaceIdEnabled] = useState(true);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [dialogProps, setDialogProps] = useState({
     title: '',
     message: '',
     type: 'info' as 'success' | 'error' | 'info' | 'warning', 
   });
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsSigningOut(true);
+              await dispatch(logoutUser()).unwrap();
+              // Navigation will be handled automatically by AuthWatcher
+            } catch (error) {
+              setIsSigningOut(false);
+              Alert.alert(
+                'Error',
+                'There was a problem signing out. Please try again.',
+                [{ text: 'OK' }]
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <AppLayout>
@@ -183,11 +218,17 @@ export default function SettingsScreen() {
         {/* Sign Out */}
         <TouchableOpacity
           className='mt-10 mb-5 items-center'
-          onPress={() => {
-            // perform sign out
-          }}
+          onPress={handleSignOut}
+          disabled={isSigningOut}
         >
-          <ThemedText className='text-red-500 font-medium text-[16px]'>Sign Out</ThemedText>
+          {isSigningOut ? (
+            <View className='flex-row items-center'>
+              <ActivityIndicator size="small" color="#EF4444" style={{ marginRight: 8 }} />
+              <ThemedText className='text-red-500 font-medium text-[16px]'>Signing Out...</ThemedText>
+            </View>
+          ) : (
+            <ThemedText className='text-red-500 font-medium text-[16px]'>Sign Out</ThemedText>
+          )}
         </TouchableOpacity>
         {/* Version info */}
         <ThemedText variant='tertiary' size='sm' className='text-center mb-10'>

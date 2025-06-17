@@ -5,9 +5,9 @@ import * as SecureStore from "expo-secure-store";
 import unifiedSecurityService from "./unifiedSecurityService";
 import ErrorHandlerService from "./errorHandlerService";
 
-// Base configuration - Updated for backend integration
+// Base configuration - Updated for direct auth service connection
 const BASE_URL = __DEV__ 
-  ? "http://localhost:3000/api"  // Development URL (API Gateway)
+  ? "http://localhost:3001/api"  // Development URL (Direct Auth Service)
   : "https://api.mooseticket.com/api"; // Production URL
 
 const API_TIMEOUT = 30000; // 30 seconds
@@ -118,15 +118,17 @@ baseClient.interceptors.request.use(
 
       // Enhanced security headers
       try {
-        // Get comprehensive security context
-        // Enhanced security check handled by unified security service
+        // Get comprehensive security context from unified security service
+        const botContext = await unifiedSecurityService.getBotContext();
         console.log('API request security validated');
         
-        // Attach security headers
-        config.headers["X-Security-Bot-Score"] = botContext.score;
-        config.headers["X-Security-Risk-Level"] = botContext.riskLevel;
-        config.headers["X-Security-Is-Human"] = botContext.isHuman;
-        config.headers["X-Security-Confidence"] = botContext.confidence;
+        // Attach security headers if available
+        if (botContext) {
+          config.headers["X-Security-Bot-Score"] = botContext.score;
+          config.headers["X-Security-Risk-Level"] = botContext.riskLevel;
+          config.headers["X-Security-Is-Human"] = botContext.isHuman;
+          config.headers["X-Security-Confidence"] = botContext.confidence;
+        }
         
       } catch (error) {
         console.warn("Failed to attach security headers:", error);

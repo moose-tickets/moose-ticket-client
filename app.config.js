@@ -43,6 +43,9 @@ export default {
       bundler: "metro"
     },
 
+    // Deep linking scheme
+    scheme: "mooseticket",
+
     // Your dynamic “extra” values (from environment variables)
     extra: {
       API_URL: process.env.API_URL,

@@ -176,6 +176,7 @@ import React, { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { Provider as ReduxProvider } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
+import * as Linking from 'expo-linking';
 import { LogBox } from "react-native";
 import "../global.css"
 import { useAppSelector } from './store';
@@ -242,11 +243,24 @@ function AppContent() {
 }
 
 export default function App() {
+  const linking = {
+    prefixes: [Linking.createURL('/'), 'mooseticket://'],
+    config: {
+      screens: {
+        Auth: {
+          screens: {
+            EmailVerified: 'email-verified',
+          },
+        },
+      },
+    },
+  };
+
   return (
     <ReduxProvider store={store}>
       <ThemeProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <NavigationContainer>
+          <NavigationContainer linking={linking}>
             <AppContent />
           </NavigationContainer>
         </GestureHandlerRootView>
