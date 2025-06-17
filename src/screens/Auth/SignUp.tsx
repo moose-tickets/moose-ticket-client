@@ -43,6 +43,7 @@ export default function SignUp() {
     message: "",
     type: "info" as "success" | "error" | "info" | "warning",
   });
+  const [shouldNavigateToSignIn, setShouldNavigateToSignIn] = useState(false);
 
   const [validLength, setValidLength] = useState(false);
   const [hasUpper, setHasUpper] = useState(false);
@@ -88,11 +89,11 @@ export default function SignUp() {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const errors: Record<string, string[]> = {};
 
     // Validate email
-    const emailResult = validateEmail(email);
+    const emailResult = await validateEmail(email);
     if (!emailResult.isValid) {
       errors.email = emailResult.errors;
     }
@@ -133,7 +134,9 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     // Validate form
-    const isValid = validateForm();
+    const isValid = await validateForm();
+
+    console.log("Validation Errors:", validationErrors);
     if (!isValid) {
       // Create detailed error message from validation errors
       const errorMessages: string[] = [];
@@ -178,13 +181,24 @@ export default function SignUp() {
       };
 
       // Dispatch sign up action
-      await dispatch(signupUser(signUpData)).unwrap();
+      const result = await dispatch(signupUser(signUpData)).unwrap();
 
-      setDialogProps({
-        title: "Account Created",
-        message: "Your account has been created successfully. Welcome to MooseTickets!",
-        type: "success",
-      });
+      // Check if user was automatically logged in or needs email verification
+      if (result.tokens) {
+        setDialogProps({
+          title: "Account Created",
+          message: "Your account has been created successfully. Welcome to MooseTickets!",
+          type: "success",
+        });
+        setShouldNavigateToSignIn(false);
+      } else {
+        setDialogProps({
+          title: "Account Created",
+          message: "Your account has been created successfully! Please check your email to verify your account before signing in.",
+          type: "success",
+        });
+        setShouldNavigateToSignIn(true);
+      }
       setDialogVisible(true);
 
     } catch (error: any) {
@@ -365,6 +379,9 @@ export default function SignUp() {
           setDialogVisible(false);
           if (error) {
             dispatch(clearError());
+          }
+          if (shouldNavigateToSignIn) {
+            navigation.navigate("SignIn");
           }
         }}
       />

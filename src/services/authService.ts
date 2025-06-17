@@ -62,7 +62,7 @@ class AuthService {
       const refreshToken = loginResponse.tokens?.refreshToken || loginResponse.refreshToken;
       
       if (!accessToken || !refreshToken) {
-        throw new Error('Invalid token response format');
+        throw new Error(`Invalid token response format - accessToken: ${accessToken ? 'present' : 'missing'}, refreshToken: ${refreshToken ? 'present' : 'missing'}`);
       }
 
       // Calculate expiry time (assuming 24h for access token if not provided)
@@ -100,6 +100,15 @@ class AuthService {
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
       console.error('Failed to get stored user:', error);
+      return null;
+    }
+  }
+
+  async getStoredToken(): Promise<string | null> {
+    try {
+      return await SecureStore.getItemAsync(TOKEN_KEYS.ACCESS_TOKEN);
+    } catch (error) {
+      console.error('Failed to get stored token:', error);
       return null;
     }
   }
@@ -273,10 +282,15 @@ class AuthService {
       );
 
       if (response.data.success && response.data.data) {
-        // Store tokens securely
-        await this.storeTokens(response.data.data);
+        // Check if tokens are provided (auto-login after signup)
+        if (response.data.data.tokens) {
+          // Store tokens securely
+          await this.storeTokens(response.data.data);
+          console.log('Signup successful with auto-login for user:', response.data.data.user.email);
+        } else {
+          console.log('Signup successful, email verification required for user:', response.data.data.user?.email);
+        }
         
-        console.log('Signup successful for user:', response.data.data.user.email);
         return response.data;
       }
 

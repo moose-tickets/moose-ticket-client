@@ -380,11 +380,20 @@ const authSlice = createSlice({
       })
       .addCase(signupUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        // Handle both old and new token formats
-        state.token = action.payload.tokens?.accessToken || action.payload.token;
-        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken;
-        state.isAuthenticated = true;
+        // Signup doesn't authenticate the user immediately - they need to verify email first
+        if (action.payload.user && action.payload.tokens) {
+          // If tokens are provided, user is authenticated
+          state.user = action.payload.user;
+          state.token = action.payload.tokens?.accessToken || action.payload.token;
+          state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken;
+          state.isAuthenticated = true;
+        } else {
+          // No tokens means user needs to verify email first
+          state.user = null;
+          state.token = null;
+          state.refreshToken = null;
+          state.isAuthenticated = false;
+        }
         state.error = null;
       })
       .addCase(signupUser.rejected, (state, action) => {
