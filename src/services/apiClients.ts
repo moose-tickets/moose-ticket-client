@@ -5,10 +5,10 @@ import * as SecureStore from "expo-secure-store";
 import unifiedSecurityService from "./unifiedSecurityService";
 import ErrorHandlerService from "./errorHandlerService";
 
-// Base configuration - Updated for direct auth service connection
+// Base configuration - Use API Gateway for all requests
 const BASE_URL = __DEV__ 
-  ? "http://localhost:3001/api"  // Development URL (Direct Auth Service)
-  : "https://api.mooseticket.com/api"; // Production URL
+  ? "http://localhost:3000/api"  // API Gateway for development
+  : "https://api.mooseticket.com/api"; // API Gateway for production
 
 const API_TIMEOUT = 30000; // 30 seconds
 
@@ -220,36 +220,11 @@ baseClient.interceptors.response.use(
       }
     }
 
-    // Handle rate limiting with enhanced messaging
+    // Handle rate limiting - simplified without retries
     if (status === 429) {
-      const retryAfter = headers?.['retry-after'] || headers?.['x-ratelimit-reset'];
-      const remainingRequests = headers?.['x-ratelimit-remaining'];
-      
-      let message = "You are making requests too frequently. Please wait and try again.";
-      
-      if (retryAfter) {
-        const resetTime = new Date(parseInt(retryAfter) * 1000);
-        message += ` Try again after ${resetTime.toLocaleTimeString()}.`;
-      }
-      
-      if (remainingRequests !== undefined) {
-        message += ` Remaining requests: ${remainingRequests}`;
-      }
-      
-      // Auto-retry for short delays
-      if (retryAfter && !originalRequest._retryAfterRateLimit) {
-        const delay = parseInt(retryAfter) * 1000;
-        if (delay <= 60000) { // Only auto-retry if delay is <= 60 seconds
-          originalRequest._retryAfterRateLimit = true;
-          console.log(`Rate limited, retrying after ${delay}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return baseClient(originalRequest);
-        }
-      }
-      
-      setTimeout(() => {
-        Alert.alert("Rate Limit Exceeded", message);
-      }, 100);
+      console.warn(`Rate limited on ${errorContext.method} ${errorContext.endpoint}`, {
+        requestId: originalRequest?.headers?.["X-Request-ID"],
+      });
     }
     
     // Handle security blocks
@@ -274,18 +249,8 @@ baseClient.interceptors.response.use(
       }, 100);
     }
 
-    // Use centralized error handler for consistent error responses
-    const handledError = ErrorHandlerService.handleError(error, errorContext);
-    
-    // Create a new error that includes our standardized response
-    const enhancedError = new Error(handledError.message) as any;
-    enhancedError.response = {
-      ...error.response,
-      data: handledError,
-    };
-    enhancedError.isHandledError = true;
-    
-    return Promise.reject(enhancedError);
+    // Simplified error handling without rate limiting
+    return Promise.reject(error);
   }
 );
 
@@ -293,44 +258,25 @@ baseClient.interceptors.response.use(
 class EnhancedApiClient {
   private client = baseClient;
 
-  // Standard methods with built-in retry for network errors
+  // Standard methods without rate limiting
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return ErrorHandlerService.executeWithRetry(
-      () => this.client.get<T>(url, config),
-      { endpoint: url, method: 'GET' }
-    );
+    return this.client.get<T>(url, config);
   }
 
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return ErrorHandlerService.executeWithRetry(
-      () => this.client.post<T>(url, data, config),
-      { endpoint: url, method: 'POST' },
-      { maxRetries: 2 } // Fewer retries for POST to avoid duplicate operations
-    );
+    return this.client.post<T>(url, data, config);
   }
 
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return ErrorHandlerService.executeWithRetry(
-      () => this.client.put<T>(url, data, config),
-      { endpoint: url, method: 'PUT' },
-      { maxRetries: 2 } // Fewer retries for PUT to avoid duplicate operations
-    );
+    return this.client.put<T>(url, data, config);
   }
 
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return ErrorHandlerService.executeWithRetry(
-      () => this.client.patch<T>(url, data, config),
-      { endpoint: url, method: 'PATCH' },
-      { maxRetries: 2 } // Fewer retries for PATCH to avoid duplicate operations
-    );
+    return this.client.patch<T>(url, data, config);
   }
 
   async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return ErrorHandlerService.executeWithRetry(
-      () => this.client.delete<T>(url, config),
-      { endpoint: url, method: 'DELETE' },
-      { maxRetries: 1 } // Minimal retries for DELETE to avoid accidental multiple deletions
-    );
+    return this.client.delete<T>(url, config);
   }
 
   // Direct access to underlying client for special cases

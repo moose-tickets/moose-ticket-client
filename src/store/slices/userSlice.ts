@@ -110,8 +110,14 @@ const initialState: UserState = {
 // Async Thunks - Profile Management
 export const fetchProfile = createAsyncThunk(
   'user/fetchProfile',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
+      // Prevent duplicate calls
+      const state = getState() as { user: UserState };
+      if (state.user.isLoadingProfile) {
+        return rejectWithValue('Profile fetch already in progress');
+      }
+
       const response = await userService.getProfile();
       if (response.success && response.data) {
         return response.data;
@@ -750,6 +756,7 @@ export const selectExportData = (state: { user: UserState }) => state.user.expor
 export const selectAvatarUploadProgress = (state: { user: UserState }) => state.user.avatarUploadProgress;
 export const selectUserPagination = (state: { user: UserState }) => state.user.pagination;
 export const selectUserLoading = (state: { user: UserState }) => state.user.isLoading;
+export const selectIsLoadingProfile = (state: { user: UserState }) => state.user.isLoadingProfile;
 export const selectUserError = (state: { user: UserState }) => state.user.error;
 export const selectIsUpdatingProfile = (state: { user: UserState }) => state.user.isUpdatingProfile;
 export const selectIsUploadingAvatar = (state: { user: UserState }) => state.user.isUploadingAvatar;

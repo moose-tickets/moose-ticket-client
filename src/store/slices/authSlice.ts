@@ -57,9 +57,45 @@ const initialState: AuthState = {
 };
 
 // Async Thunks
+export const initializeAuth = createAsyncThunk(
+  'auth/initialize',
+  async (_, { rejectWithValue, dispatch }) => {
+    try {
+      // Check if we have stored tokens
+      const storedToken = await authService.getStoredToken();
+      if (!storedToken) {
+        return { isAuthenticated: false, user: null };
+      }
+
+      // Try to validate the token by getting current user
+      try {
+        const response = await authService.getCurrentUser();
+        if (response.success && response.data) {
+          return { 
+            isAuthenticated: true, 
+            user: response.data,
+            token: storedToken
+          };
+        } else {
+          // Token is invalid, clear it
+          await authService.clearTokens();
+          return { isAuthenticated: false, user: null };
+        }
+      } catch (error: any) {
+        // Token validation failed, clear auth state
+        console.log('Token validation failed, clearing auth state');
+        await authService.clearTokens();
+        return { isAuthenticated: false, user: null };
+      }
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Auth initialization failed');
+    }
+  }
+);
+
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; password: string; rememberMe?: boolean }, { rejectWithValue }) => {
+  async (credentials: { email: string; password: string; }, { rejectWithValue }) => {
     try {
       console.log(credentials)
       const response = await authService.login(credentials);
@@ -186,7 +222,7 @@ export const logoutUser = createAsyncThunk(
 
 export const getCurrentUser = createAsyncThunk(
   'auth/getCurrentUser',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const response = await authService.getCurrentUser();
       if (response.success && response.data) {
@@ -195,6 +231,11 @@ export const getCurrentUser = createAsyncThunk(
         return rejectWithValue(response.message || 'Failed to get user');
       }
     } catch (error: any) {
+      // If we get a 401/404, the user is not properly authenticated
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        console.log('User not authenticated, clearing auth state');
+        dispatch(logout());
+      }
       return rejectWithValue(error.message || 'Network error');
     }
   }
@@ -345,6 +386,27 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Auth initialization cases
+      .addCase(initializeAuth.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = action.payload.isAuthenticated;
+        state.user = action.payload.user;
+        state.token = action.payload.token || null;
+        state.error = null;
+      })
+      .addCase(initializeAuth.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.error = action.payload as string;
+      })
+      
       // Login cases
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;

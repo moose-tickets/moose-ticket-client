@@ -1,6 +1,6 @@
 // src/navigation/MainNavigator.tsx
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { 
@@ -11,6 +11,9 @@ import {
   MainTabParamList 
 } from './types';
 import { useTheme } from '../wrappers/ThemeProvider';
+import { useAppDispatch, useAppSelector } from '../store';
+import { fetchProfile, selectProfile, selectIsLoadingProfile } from '../store/slices/userSlice';
+import { selectIsAuthenticated } from '../store/slices/authSlice';
 
 import Dashboard from '../screens/Home/Dashboard';
 import VehicleList from '../screens/Vehicles/VehicleList';
@@ -145,6 +148,22 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainNavigator() {
   const { theme, forceStatusBarUpdate } = useTheme();
+  const dispatch = useAppDispatch();
+  const profile = useAppSelector(selectProfile);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const isLoadingProfile = useAppSelector(selectIsLoadingProfile);
+
+  // Fetch user profile when main app loads if not already loaded
+  useEffect(() => {
+    if (isAuthenticated && !profile && !isLoadingProfile) {
+      console.log('🔄 MainNavigator: Profile not loaded, fetching profile...');
+      // Small delay to prevent collision with other profile fetches
+      const timer = setTimeout(() => {
+        dispatch(fetchProfile());
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [dispatch, profile, isAuthenticated, isLoadingProfile]);
 
   return (
     <Tab.Navigator

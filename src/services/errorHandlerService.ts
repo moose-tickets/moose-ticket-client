@@ -30,13 +30,29 @@ export interface StandardError {
 
 class ErrorHandlerService {
   
+  // Rate limit tracking
+  private rateLimitedEndpoints: Map<string, number> = new Map();
+  private readonly RATE_LIMIT_COOL_DOWN = 30000; // 30 seconds
+
   private readonly DEFAULT_RETRY_CONFIG: RetryConfig = {
-    maxRetries: 3,
-    baseDelay: 1000, // 1 second
-    maxDelay: 10000, // 10 seconds
-    backoffMultiplier: 2,
+    maxRetries: 2, // Reduced from 3 to 2
+    baseDelay: 2000, // Increased from 1 to 2 seconds
+    maxDelay: 30000, // Increased from 10 to 30 seconds
+    backoffMultiplier: 3, // Increased from 2 to 3 for more aggressive backoff
     retryCondition: (error: AxiosError) => this.isRetryableError(error),
   };
+
+  // Rate limit management
+  private isEndpointRateLimited(endpoint: string): boolean {
+    const lastRateLimit = this.rateLimitedEndpoints.get(endpoint);
+    if (!lastRateLimit) return false;
+    
+    return Date.now() - lastRateLimit < this.RATE_LIMIT_COOL_DOWN;
+  }
+
+  private markEndpointAsRateLimited(endpoint: string): void {
+    this.rateLimitedEndpoints.set(endpoint, Date.now());
+  }
 
   // Error Classification
   private isRetryableError(error: AxiosError): boolean {
@@ -52,7 +68,7 @@ class ErrorHandlerService {
       return true;
     }
 
-    // Rate limiting (429) should be retried with backoff
+    // Rate limiting (429) should be retried with special handling
     if (status === 429) {
       return true;
     }
@@ -191,8 +207,30 @@ class ErrorHandlerService {
     };
   }
 
-  // Retry Logic with Exponential Backoff
-  private calculateDelay(retryCount: number, config: RetryConfig): number {
+  // Retry Logic with Exponential Backoff and Rate Limit Handling
+  private calculateDelay(retryCount: number, config: RetryConfig, error?: AxiosError): number {
+    // Special handling for rate limiting errors
+    if (error?.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'] || error.response.headers['x-ratelimit-reset'];
+      if (retryAfter) {
+        const retryAfterSeconds = parseInt(retryAfter);
+        const retryAfterMs = retryAfterSeconds * 1000;
+        
+        // If retry-after is more than 5 minutes, don't retry at all
+        if (retryAfterSeconds > 300) {
+          throw new Error(`Rate limited for ${retryAfterSeconds} seconds. Please wait before retrying.`);
+        }
+        
+        // Cap retry after to reasonable limits (5 minutes max)
+        if (retryAfterMs <= 300000) { // Max 5 minutes
+          return retryAfterMs;
+        }
+      }
+      // If no retry-after header or it's too long, use aggressive backoff but don't retry
+      throw new Error('Rate limited with long delay. Please wait before retrying.');
+    }
+    
+    // Standard exponential backoff
     const delay = config.baseDelay * Math.pow(config.backoffMultiplier, retryCount);
     return Math.min(delay, config.maxDelay);
   }
@@ -209,11 +247,21 @@ class ErrorHandlerService {
     const config = { ...this.DEFAULT_RETRY_CONFIG, ...retryConfig };
     let lastError: AxiosError;
     
+    // Check if endpoint is currently rate limited
+    if (context.endpoint && this.isEndpointRateLimited(context.endpoint)) {
+      throw new Error(`Endpoint ${context.endpoint} is currently rate limited. Please wait before retrying.`);
+    }
+    
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error as AxiosError;
+        
+        // Mark endpoint as rate limited if 429 error
+        if (lastError.response?.status === 429 && context.endpoint) {
+          this.markEndpointAsRateLimited(context.endpoint);
+        }
         
         // Don't retry on the last attempt
         if (attempt === config.maxRetries) {
@@ -226,7 +274,7 @@ class ErrorHandlerService {
         }
 
         // Calculate delay for next retry
-        const delay = this.calculateDelay(attempt, config);
+        const delay = this.calculateDelay(attempt, config, lastError);
         
         // Log retry attempt
         console.warn(`Request failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${delay}ms:`, {

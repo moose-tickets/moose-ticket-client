@@ -300,6 +300,45 @@ class UnifiedSecurityService {
       metadata
     });
   }
+
+  // Bot context for API headers
+  async getBotContext(): Promise<{
+    score: number;
+    riskLevel: 'low' | 'medium' | 'high';
+    isHuman: boolean;
+    confidence: number;
+  } | null> {
+    try {
+      // Get basic security assessment from enhanced security service
+      const securityStats = enhancedSecurityService.getSecurityStats();
+      
+      // Calculate bot score based on available metrics
+      const score = Math.max(0.1, Math.min(1.0, 
+        1.0 - (securityStats.suspiciousActivityCount * 0.2)
+      ));
+      
+      // Determine risk level
+      let riskLevel: 'low' | 'medium' | 'high' = 'low';
+      if (score < 0.3) riskLevel = 'high';
+      else if (score < 0.7) riskLevel = 'medium';
+      
+      return {
+        score,
+        riskLevel,
+        isHuman: score > 0.5,
+        confidence: score
+      };
+    } catch (error) {
+      console.warn('Failed to get bot context:', error);
+      // Return safe defaults if security service is unavailable
+      return {
+        score: 0.8,
+        riskLevel: 'low',
+        isHuman: true,
+        confidence: 0.8
+      };
+    }
+  }
 }
 
 // Export singleton

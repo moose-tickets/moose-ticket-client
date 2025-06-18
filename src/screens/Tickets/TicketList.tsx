@@ -207,21 +207,33 @@ export default function TicketListScreen() {
                   </TouchableOpacity>
                 </ThemedView>
               ) : (
-                <ThemedView className='items-center'>
+                <ThemedView className='items-center px-6'>
                   <Ionicons
-                    name='document-outline'
-                    size={48}
+                    name='document-text-outline'
+                    size={64}
                     color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
                   />
-                  <ThemedText variant='secondary' className='text-center mt-2'>
-                    {tab === 'All' ? 'No tickets found.' : `No ${tab.toLowerCase()} tickets found.`}
+                  <ThemedText variant='primary' weight='semibold' size='lg' className='text-center mt-4'>
+                    {tab === 'All' ? 'Welcome to MooseTicket!' : `No ${tab.toLowerCase()} tickets found`}
+                  </ThemedText>
+                  <ThemedText variant='secondary' className='text-center mt-2 leading-5'>
+                    {tab === 'All' 
+                      ? 'Start by adding your first parking ticket to track payments, due dates, and dispute options all in one place.'
+                      : `You don't have any ${tab.toLowerCase()} tickets at the moment.`
+                    }
                   </ThemedText>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('AddTicket')}
-                    className='mt-4 px-4 py-2 bg-primary rounded-lg'
+                    className='mt-6 px-6 py-3 bg-primary rounded-xl flex-row items-center'
                   >
-                    <ThemedText variant='inverse' size='sm'>
-                      Add First Ticket
+                    <Ionicons
+                      name='add'
+                      size={20}
+                      color='white'
+                      style={{ marginRight: 8 }}
+                    />
+                    <ThemedText variant='inverse' size='base' weight='medium'>
+                      {tab === 'All' ? 'Add Your First Ticket' : 'Add New Ticket'}
                     </ThemedText>
                   </TouchableOpacity>
                 </ThemedView>

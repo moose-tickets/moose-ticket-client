@@ -35,7 +35,7 @@ const AUTH_ENDPOINTS = {
   CHANGE_PASSWORD: '/auth/change-password',
   VERIFY_EMAIL: '/auth/verify-email',
   RESEND_VERIFICATION: '/auth/resend-verification',
-  ME: '/auth/me',
+  ME: '/auth/profile',
   // OAuth endpoints
   OAUTH_GOOGLE: '/auth/google',
   OAUTH_FACEBOOK: '/auth/facebook', 
@@ -81,7 +81,7 @@ class AuthService {
     }
   }
 
-  private async clearTokens(): Promise<void> {
+  async clearTokens(): Promise<void> {
     try {
       await Promise.all([
         SecureStore.deleteItemAsync(TOKEN_KEYS.ACCESS_TOKEN),
@@ -152,7 +152,7 @@ class AuthService {
       const sanitizedCredentials = {
         email: sanitizeEmail(credentials.email),
         password: sanitizePassword(credentials.password),
-        rememberMe: credentials.rememberMe || false,
+        // rememberMe: credentials.rememberMe || false,
       };
 
       // 3. Perform security checks

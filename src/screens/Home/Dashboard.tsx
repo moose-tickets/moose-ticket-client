@@ -46,7 +46,9 @@ import {
 } from '../../store/slices/notificationSlice';
 import {
   selectProfile,
+  fetchProfile,
 } from '../../store/slices/userSlice';
+import { selectIsAuthenticated } from '../../store/slices/authSlice';
 
 export default function HomeScreen() {
   const navigation = useHomeStackNavigation();
@@ -55,6 +57,7 @@ export default function HomeScreen() {
 
   // Redux state selectors
   const profile = useAppSelector(selectProfile);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const dashboardStats = useAppSelector(selectDashboardStats);
   const recentTickets = useAppSelector(selectRecentTickets);
   const upcomingDueDates = useAppSelector(selectUpcomingDueDates);
@@ -65,6 +68,14 @@ export default function HomeScreen() {
   const isLoadingStats = useAppSelector(selectIsLoadingStats);
   const vehicleLoading = useAppSelector(selectVehicleLoading);
   const timeRange = useAppSelector(selectTimeRange);
+
+  console.log('HomeScreen - profile:', profile);
+  console.log('HomeScreen - dashboardStats:', dashboardStats);
+  console.log('HomeScreen - recentTickets:', recentTickets);
+  console.log('HomeScreen - upcomingDueDates:', upcomingDueDates);
+  console.log('HomeScreen - recentActivity:', recentActivity);
+  console.log('HomeScreen - vehicles:', vehicles);
+  console.log('HomeScreen - unreadCount:', unreadCount);
 
   // Get today's date
   const date = new Date();
@@ -105,15 +116,25 @@ export default function HomeScreen() {
     }
   };
 
-  // Load dashboard data
+  // Load dashboard data only when authenticated
   useEffect(() => {
-    dispatch(fetchDashboardStats(timeRange));
-    dispatch(fetchRecentTickets());
-    dispatch(fetchUpcomingDueDates());
-    dispatch(fetchRecentActivity());
-    dispatch(fetchVehicles({ limit: 5 }));
-    dispatch(fetchUnreadCount());
-  }, [dispatch, timeRange]);
+    if (isAuthenticated) {
+      dispatch(fetchDashboardStats(timeRange));
+      dispatch(fetchRecentTickets());
+      dispatch(fetchUpcomingDueDates());
+      dispatch(fetchRecentActivity());
+      dispatch(fetchVehicles({ limit: 5 }));
+      dispatch(fetchUnreadCount());
+    }
+  }, [dispatch, timeRange, isAuthenticated]);
+
+  // Load user profile if not already loaded
+  useEffect(() => {
+    if (!profile && !isLoadingStats && isAuthenticated) {
+      console.log('📱 Dashboard: Profile is null, fetching profile...');
+      dispatch(fetchProfile());
+    }
+  }, [dispatch, profile, isLoadingStats, isAuthenticated]);
 
   // Handle refresh
   const handleRefresh = () => {
@@ -170,7 +191,7 @@ export default function HomeScreen() {
           <ThemedView className='flex-row justify-between items-start'>
             <ThemedView className='flex-1'>
               <ThemedText size='2xl' weight='bold' variant='primary'>
-                {greeting}, {profile?.fullName?.split(' ')[0] || 'User'}
+                {greeting}, {profile?.firstName?.split(' ')[0] || 'User'}
               </ThemedText>
               <ThemedText variant='secondary' className='mt-1'>
                 {dashboardStats ? `${dashboardStats.outstandingTickets} outstanding tickets` : 'Your parking status at a glance'}
@@ -223,18 +244,37 @@ export default function HomeScreen() {
           </ThemedCard>
         ) : dashboardStats?.outstandingTickets === 0 ? (
           <ThemedCard className='mb-4'>
-            <ThemedView className='items-center py-4'>
+            <ThemedView className='items-center py-6'>
               <Ionicons
                 name='checkmark-circle-outline'
-                size={48}
+                size={56}
                 color={theme === 'dark' ? '#4ADE80' : '#16A34A'}
               />
-              <ThemedText size='lg' weight='bold' variant='primary' className='mt-2'>
+              <ThemedText size='xl' weight='bold' variant='primary' className='mt-3'>
                 All Clear!
               </ThemedText>
-              <ThemedText variant='secondary' size='sm' className='text-center mt-1'>
-                You have no outstanding tickets
+              <ThemedText variant='secondary' size='base' className='text-center mt-2 px-4'>
+                {dashboardStats?.totalTickets === 0 
+                  ? 'Ready to add your first parking ticket?'
+                  : 'You have no outstanding tickets'
+                }
               </ThemedText>
+              {dashboardStats?.totalTickets === 0 && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('AddTicket')}
+                  className='mt-4 px-4 py-2 bg-primary rounded-lg flex-row items-center'
+                >
+                  <Ionicons
+                    name='add'
+                    size={16}
+                    color='white'
+                    style={{ marginRight: 6 }}
+                  />
+                  <ThemedText variant='inverse' size='sm' weight='medium'>
+                    Get Started
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </ThemedView>
           </ThemedCard>
         ) : (
@@ -345,10 +385,20 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))
           ) : (
-            <ThemedCard variant='flat' className='bg-background-secondary p-4'>
-              <ThemedText variant='secondary' size='sm' className='text-center'>
-                No recent activity
-              </ThemedText>
+            <ThemedCard variant='flat' className='bg-background-secondary p-6'>
+              <ThemedView className='items-center'>
+                <Ionicons
+                  name='time-outline'
+                  size={32}
+                  color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
+                />
+                <ThemedText variant='secondary' size='sm' className='text-center mt-2'>
+                  No recent activity yet
+                </ThemedText>
+                <ThemedText variant='tertiary' size='xs' className='text-center mt-1'>
+                  Your activity will appear here
+                </ThemedText>
+              </ThemedView>
             </ThemedCard>
           )}
         </ThemedView>
@@ -400,16 +450,23 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
           ListEmptyComponent={
-            <ThemedCard variant='flat' className='w-40 bg-background-secondary items-center justify-center py-6'>
-              <Ionicons
-                name='add-circle-outline'
-                size={32}
-                color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
-              />
-              <ThemedText variant='secondary' size='sm' className='text-center mt-2'>
-                Add your first vehicle
-              </ThemedText>
-            </ThemedCard>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('VehicleDetail', { vehicleId: 'new' })}
+            >
+              <ThemedCard variant='flat' className='w-48 bg-background-secondary items-center justify-center py-8'>
+                <Ionicons
+                  name='car-outline'
+                  size={40}
+                  color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
+                />
+                <ThemedText variant='primary' weight='semibold' size='base' className='text-center mt-3'>
+                  Add Vehicle
+                </ThemedText>
+                <ThemedText variant='secondary' size='sm' className='text-center mt-1 px-2'>
+                  Add your vehicle to quickly create tickets
+                </ThemedText>
+              </ThemedCard>
+            </TouchableOpacity>
           }
         />
       </ThemedScrollView>

@@ -28,7 +28,7 @@ import {
 } from "../utils/sanitize";
 
 const USER_ENDPOINTS = {
-  PROFILE: '/users/profile',
+  PROFILE: '/auth/profile',
   PREFERENCES: '/users/preferences', 
   ADDRESSES: '/users/addresses',
   AVATAR: '/users/avatar',

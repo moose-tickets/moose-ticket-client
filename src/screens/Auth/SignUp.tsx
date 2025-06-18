@@ -30,12 +30,12 @@ export default function SignUp() {
   // Fix status bar styling during navigation
   useStatusBarFix();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState(__DEV__ ? "test@example.com" : "");
+  const [password, setPassword] = useState(__DEV__ ? "Test123!" : "");
+  const [confirmPassword, setConfirmPassword] = useState(__DEV__ ? "Test123!" : "");
+  const [firstName, setFirstName] = useState(__DEV__ ? "Test" : "");
+  const [lastName, setLastName] = useState(__DEV__ ? "User" : "");
+  const [phone, setPhone] = useState(__DEV__ ? "+1234567890" : "");
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({

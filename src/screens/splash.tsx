@@ -7,8 +7,9 @@ import { useAppSelector, useAppDispatch } from "../store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ThemedView, ThemedText } from "../components/ThemedComponents";
 import { useTheme } from "../wrappers/ThemeProvider";
-import { selectIsAuthenticated, selectUser, getCurrentUser } from "../store/slices/authSlice";
+import { selectIsAuthenticated, selectUser, initializeAuth } from "../store/slices/authSlice";
 import { initializeApp } from "../store/slices/appSlice";
+import { fetchProfile } from "../store/slices/userSlice";
 
 
 const { width } = Dimensions.get("window");
@@ -29,22 +30,32 @@ export default function Splash() {
   useEffect(() => {
     const initializeAndNavigate = async () => {
       try {
-        // Initialize the app
+        // Initialize the app and authentication
         await dispatch(initializeApp());
+        const authResult = await dispatch(initializeAuth());
         
-        // If user has token, try to get current user info
-        if (isAuthenticated) {
-          await dispatch(getCurrentUser());
+        // If authentication is valid, fetch profile
+        if (authResult.payload && authResult.payload.isAuthenticated) {
+          try {
+            await dispatch(fetchProfile());
+          } catch (error) {
+            console.log('Profile fetch failed:', error);
+          }
         }
         
         // Check onboarding status
         const onboardingSeen = await AsyncStorage.getItem("onboarding_shown");
         
+        // Get the updated authentication state after initialization
+        const authState = (authResult.payload as any);
+        const finalIsAuthenticated = authState?.isAuthenticated || false;
+        const finalUser = authState?.user || null;
+        
         // Determine navigation route
         let route: string;
         let screen: string;
         
-        if (isAuthenticated && user) {
+        if (finalIsAuthenticated && finalUser) {
           route = "Main";
           screen = "Dashboard";
         } else if (onboardingSeen) {

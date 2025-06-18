@@ -1,6 +1,6 @@
 // src/services/backendSecurityService.ts
 // Service to integrate with backend security features
-import apiClient from './apiClients';
+import axios from 'axios';
 
 export interface BackendSecurityRequest {
   action: string;
@@ -42,6 +42,10 @@ export interface ThreatAnalysisResponse {
 }
 
 class BackendSecurityService {
+  private readonly BASE_URL = __DEV__ 
+    ? "http://localhost:3000/api"
+    : "https://api.mooseticket.com/api";
+    
   private readonly SECURITY_ENDPOINTS = {
     VALIDATE_ACTION: '/security/validate-action',
     VALIDATE_EMAIL: '/security/validate-email',
@@ -55,7 +59,7 @@ class BackendSecurityService {
     try {
       console.log('🛡️ Validating action with backend security service:', request.action);
       
-      const response = await apiClient.post(this.SECURITY_ENDPOINTS.VALIDATE_ACTION, {
+      const response = await axios.post(`${this.BASE_URL}${this.SECURITY_ENDPOINTS.VALIDATE_ACTION}`, {
         ...request,
         clientType: 'react-native',
         appVersion: '1.0.0', // You can get this from Constants
@@ -95,7 +99,7 @@ class BackendSecurityService {
   // Advanced email validation via backend
   async validateEmailWithBackend(email: string): Promise<EmailValidationResponse> {
     try {
-      const response = await apiClient.post(this.SECURITY_ENDPOINTS.VALIDATE_EMAIL, {
+      const response = await axios.post(`${this.BASE_URL}${this.SECURITY_ENDPOINTS.VALIDATE_EMAIL}`, {
         email: email.toLowerCase().trim(),
         timestamp: Date.now()
       });
@@ -116,7 +120,7 @@ class BackendSecurityService {
   // Threat analysis via backend
   async analyzeThreat(input: string, context?: string): Promise<ThreatAnalysisResponse> {
     try {
-      const response = await apiClient.post(this.SECURITY_ENDPOINTS.ANALYZE_THREAT, {
+      const response = await axios.post(`${this.BASE_URL}${this.SECURITY_ENDPOINTS.ANALYZE_THREAT}`, {
         input,
         context,
         timestamp: Date.now(),
@@ -155,7 +159,7 @@ class BackendSecurityService {
     metadata?: any;
   }): Promise<boolean> {
     try {
-      const response = await apiClient.post(this.SECURITY_ENDPOINTS.REPORT_INCIDENT, {
+      const response = await axios.post(`${this.BASE_URL}${this.SECURITY_ENDPOINTS.REPORT_INCIDENT}`, {
         ...incident,
         timestamp: Date.now(),
         reportedBy: 'mobile-app'
@@ -177,7 +181,7 @@ class BackendSecurityService {
     recommendedActions: string[];
   }> {
     try {
-      const response = await apiClient.get(this.SECURITY_ENDPOINTS.GET_SECURITY_STATUS);
+      const response = await axios.get(`${this.BASE_URL}${this.SECURITY_ENDPOINTS.GET_SECURITY_STATUS}`);
 
       if (response.data?.success) {
         return response.data.data;

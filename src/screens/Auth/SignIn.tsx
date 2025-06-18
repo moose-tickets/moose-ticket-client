@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useAuthStackNavigation } from '../../navigation/hooks';
+import { CommonActions } from '@react-navigation/native';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import useStatusBarFix from '../../hooks/useStatusBarFix';
 import { ThemedView, ThemedText, ThemedButton } from '../../components/ThemedComponents';
@@ -34,8 +35,8 @@ export default function SignIn() {
   
   // Fix status bar styling during navigation
   useStatusBarFix();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(__DEV__ ? 'danthurnye@gmail.com' : '');
+  const [password, setPassword] = useState(__DEV__ ? 'Moose!123' : '');
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({
@@ -102,7 +103,12 @@ export default function SignIn() {
       // Navigate after short delay
       setTimeout(() => {
         setDialogVisible(false);
-        navigation.navigate("Main", { screen: "Home", params: { screen: "Dashboard" } });
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
+          })
+        );
       }, 1500);
     }
   }, [isAuthenticated, navigation]);
@@ -120,7 +126,7 @@ export default function SignIn() {
   }, [error]);
 
   const handleSignIn = async () => {
-    if (isLoading || isRateLimited) return;
+    if (isLoading) return;
 
     // Clear previous errors
     dispatch(clearError());
@@ -137,21 +143,29 @@ export default function SignIn() {
       const sanitizedEmail = sanitizeEmail(email);
       const sanitizedPassword = sanitizePassword(password);
 
-      // 3. Perform security checks with rate limiting
-      await executeWithRateLimit(async () => {
-        // Bot detection
-        const botContext = await checkBot();
-        if (!botContext.isHuman && botContext.riskLevel === 'critical') {
-          throw new Error('Security check failed');
-        }
-
-        // Dispatch Redux action to sign in
+      // 3. Simplified login for development
+      if (__DEV__) {
+        console.log('🚀 Development login attempt:', { email: sanitizedEmail });
         dispatch(loginUser({
           email: sanitizedEmail,
-          password: sanitizedPassword,
-          rememberMe: true
+          password: sanitizedPassword
         }));
-      });
+      } else {
+        // 3. Perform security checks with rate limiting (production only)
+        await executeWithRateLimit(async () => {
+          // Bot detection
+          const botContext = await checkBot();
+          if (!botContext.isHuman && botContext.riskLevel === 'critical') {
+            throw new Error('Security check failed');
+          }
+
+          // Dispatch Redux action to sign in
+          dispatch(loginUser({
+            email: sanitizedEmail,
+            password: sanitizedPassword
+          }));
+        });
+      }
 
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -265,7 +279,7 @@ export default function SignIn() {
           variant="primary"
           size="lg"
           onPress={handleSignIn}
-          disabled={isLoading || isRateLimited || (!isHuman && riskLevel === 'critical')}
+          disabled={isLoading || (!__DEV__ && (isRateLimited || (!isHuman && riskLevel === 'critical')))}
           className="mb-6"
         >
           {isLoading ? 'Signing In...' : 'Sign In'}
