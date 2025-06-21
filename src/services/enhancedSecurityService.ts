@@ -44,7 +44,6 @@ export interface BiometricCheckResult {
 }
 
 class EnhancedSecurityService {
-  private rateLimitStorage: Map<string, any> = new Map();
   private deviceFingerprint: string | null = null;
   private sessionStartTime: number = Date.now();
   private suspiciousActivityCount: number = 0;
@@ -360,26 +359,20 @@ class EnhancedSecurityService {
     };
   }
 
-  // Comprehensive security check
+  // Comprehensive security check (Rate limiting removed)
   public async performComprehensiveSecurityCheck(
     action: SecurityActionType,
     input?: string,
     context?: Record<string, any>
   ): Promise<SecurityResult> {
     try {
-      // 1. Basic rate limiting
-      const rateLimitResult = await this.checkRateLimit(action);
-      if (!rateLimitResult.allowed) {
-        return rateLimitResult;
-      }
-
-      // 2. Session security
+      // 1. Session security
       const sessionResult = await this.checkSessionSecurity();
       if (!sessionResult.allowed) {
         return sessionResult;
       }
 
-      // 3. Input threat analysis
+      // 2. Input threat analysis
       if (input) {
         const threatResult = this.analyzeInputForThreats(input);
         if (threatResult.isThreat && threatResult.confidence > 0.7) {
@@ -393,7 +386,7 @@ class EnhancedSecurityService {
         }
       }
 
-      // 4. Device security check
+      // 3. Device security check
       const deviceInfo = await this.getEnhancedDeviceInfo();
       if (deviceInfo.isRooted && action === SecurityActionType.PAYMENT_ATTEMPT) {
         return {
@@ -404,7 +397,7 @@ class EnhancedSecurityService {
         };
       }
 
-      // 5. Network security check
+      // 4. Network security check
       const netInfo = await NetInfo.fetch();
       if (netInfo.type === 'other' && [SecurityActionType.PAYMENT_ATTEMPT, SecurityActionType.SENSITIVE_DATA_ACCESS].includes(action)) {
         return {
@@ -418,7 +411,6 @@ class EnhancedSecurityService {
       return {
         allowed: true,
         riskLevel: 'low',
-        remaining: rateLimitResult.remaining,
         metadata: {
           deviceFingerprint: this.deviceFingerprint?.substring(0, 8) + '...',
           networkType: netInfo.type,
@@ -436,19 +428,12 @@ class EnhancedSecurityService {
     }
   }
 
-  // Rate limiting (reuse from existing service)
-  private async checkRateLimit(action: SecurityActionType): Promise<SecurityResult> {
-    // Implementation similar to existing mobileSecurityService
-    // ... (reuse existing rate limiting logic)
-    return { allowed: true, riskLevel: 'low' };
-  }
 
   private async loadSecurityData(): Promise<void> {
     try {
       const data = await AsyncStorage.getItem('enhanced_security_data');
       if (data) {
         const parsed = JSON.parse(data);
-        this.rateLimitStorage = new Map(Object.entries(parsed.rateLimit || {}));
         this.suspiciousActivityCount = parsed.suspiciousActivityCount || 0;
       }
     } catch (error) {
@@ -459,7 +444,6 @@ class EnhancedSecurityService {
   private async saveSecurityData(): Promise<void> {
     try {
       const data = {
-        rateLimit: Object.fromEntries(this.rateLimitStorage),
         suspiciousActivityCount: this.suspiciousActivityCount,
         lastUpdated: Date.now()
       };
@@ -483,7 +467,6 @@ class EnhancedSecurityService {
 
   // Public API methods
   public async clearSecurityData(): Promise<void> {
-    this.rateLimitStorage.clear();
     this.suspiciousActivityCount = 0;
     await AsyncStorage.removeItem('enhanced_security_data');
     console.log('🧹 Security data cleared');
@@ -497,6 +480,68 @@ class EnhancedSecurityService {
       platform: Platform.OS,
       isDevMode: __DEV__
     };
+  }
+
+  // Bot environment analysis
+  public analyzeEnvironmentForBots(): {
+    isBotLikely: boolean;
+    confidence: number;
+    botIndicators: string[];
+  } {
+    const indicators: string[] = [];
+    let confidence = 0;
+
+    try {
+      // Check if running on real device
+      if (!Device.isDevice) {
+        indicators.push('Running on emulator/simulator');
+        confidence += 0.3;
+      }
+
+      // Check for suspicious timing patterns
+      const sessionDuration = Date.now() - this.sessionStartTime;
+      if (sessionDuration < 1000) {
+        indicators.push('Very short session duration');
+        confidence += 0.2;
+      }
+
+      // Check suspicious activity count
+      if (this.suspiciousActivityCount > 3) {
+        indicators.push('Multiple suspicious activities detected');
+        confidence += 0.4;
+      }
+
+      // Check platform consistency
+      if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+        indicators.push('Unknown platform detected');
+        confidence += 0.5;
+      }
+
+      return {
+        isBotLikely: confidence > 0.5,
+        confidence: Math.min(confidence, 1),
+        botIndicators: indicators
+      };
+    } catch (error) {
+      console.warn('Bot analysis failed:', error);
+      return {
+        isBotLikely: false,
+        confidence: 0,
+        botIndicators: ['Analysis failed']
+      };
+    }
+  }
+
+  // Get session ID
+  public getSessionId(): string {
+    try {
+      // Create a session ID based on device fingerprint and session start time
+      const sessionData = `${this.deviceFingerprint || 'unknown'}-${this.sessionStartTime}`;
+      return sessionData.substring(0, 16);
+    } catch (error) {
+      console.warn('Failed to get session ID:', error);
+      return `fallback-${Date.now().toString().substring(-8)}`;
+    }
   }
 }
 

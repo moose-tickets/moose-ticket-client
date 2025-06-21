@@ -118,9 +118,9 @@ export default function HomeScreen() {
       
       if (shouldRefresh) {
         dispatch(fetchDashboardStats(timeRange));
-        dispatch(fetchRecentTickets());
-        dispatch(fetchUpcomingDueDates());
-        dispatch(fetchRecentActivity());
+        // dispatch(fetchRecentTickets());
+        // dispatch(fetchUpcomingDueDates());
+        // dispatch(fetchRecentActivity());
         dispatch(fetchUnreadCount());
         
         // Only fetch vehicles if we don't have any or they're very stale (30 minutes)

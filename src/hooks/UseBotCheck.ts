@@ -1,6 +1,5 @@
 // src/hooks/useBotCheck.ts
 import { useState, useEffect, useCallback } from 'react';
-import unifiedSecurityService, { SecurityActionType } from '../services/unifiedSecurityService';
 
 export interface BotContext {
   score: number;
@@ -40,25 +39,18 @@ export const useBotCheck = (options: UseBotCheckOptions = {}): UseBotCheckReturn
     setIsChecking(true);
     
     try {
-      // Use unified security service for comprehensive device checks
-      const securityResult = await unifiedSecurityService.validateAction(SecurityActionType.API_REQUEST, undefined, context);
-      
-      // Convert security result to bot context format
+      // Simplified bot check - rate limiting disabled, always allow
       const result: BotContext = {
-        score: securityResult.riskLevel === 'critical' ? 0.9 : securityResult.riskLevel === 'high' ? 0.7 : securityResult.riskLevel === 'medium' ? 0.4 : 0.1,
-        isHuman: securityResult.allowed,
-        confidence: securityResult.riskLevel === 'critical' ? 'high' : securityResult.riskLevel === 'high' ? 'medium' : 'low',
-        riskLevel: securityResult.riskLevel
+        score: 0.1,
+        isHuman: true,
+        confidence: 'low',
+        riskLevel: 'low'
       };
       
       setBotContext(result);
 
-      // Trigger callbacks based on result
-      if (!result.isHuman && result.riskLevel === 'critical') {
-        onBotDetected?.(result);
-      } else if (result.isHuman) {
-        onHumanVerified?.(result);
-      }
+      // Trigger human verified callback
+      onHumanVerified?.(result);
 
       return result;
     } catch (error) {

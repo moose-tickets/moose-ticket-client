@@ -2,7 +2,6 @@
 import apiClient from "./apiClients";
 import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
-  Ticket,
   CreateTicketRequest,
   UpdateTicketRequest,
   TicketFilters,
@@ -25,6 +24,7 @@ import {
   sanitizeFileName,
   redactForLogging 
 } from "../utils/sanitize";
+import { ITicket, ITicketListResponse } from "../types/ticket.types";
 
 const TICKET_ENDPOINTS = {
   TICKETS: '/tickets',
@@ -44,7 +44,7 @@ const TICKET_ENDPOINTS = {
 class TicketService {
 
   // Ticket Management
-  async getTickets(params?: PaginationParams & TicketFilters): Promise<ApiResponse<Ticket[]>> {
+  async getTickets(params?: PaginationParams & TicketFilters): Promise<ApiResponse<ITicketListResponse[]>> {
     try {
       // 1. Sanitize query parameters
       const sanitizedParams: any = {};
@@ -78,7 +78,7 @@ class TicketService {
       }
 
       // 3. Make API request
-      const response = await apiClient.get<ApiResponse<Ticket[]>>(
+      const response = await apiClient.get<ApiResponse<ITicket[]>>(
         TICKET_ENDPOINTS.TICKETS,
         { params: sanitizedParams }
       );
@@ -96,7 +96,7 @@ class TicketService {
     }
   }
 
-  async getTicket(ticketId: string): Promise<ApiResponse<Ticket>> {
+  async getTicket(ticketId: string): Promise<ApiResponse<ITicket>> {
     try {
       // 1. Validate required ID
       if (!ticketId || ticketId.trim().length === 0) {
@@ -121,8 +121,10 @@ class TicketService {
         };
       }
 
+      console.log('🎫 Fetching ticket:', redactForLogging({ ticketId }));
+
       // 3. Make API request
-      const response = await apiClient.get<ApiResponse<Ticket>>(
+      const response = await apiClient.get<ApiResponse<ITicket>>(
         TICKET_ENDPOINTS.TICKET_DETAIL(ticketId)
       );
 
@@ -147,7 +149,7 @@ class TicketService {
     }
   }
 
-  async createTicket(ticketData: CreateTicketRequest): Promise<ApiResponse<Ticket>> {
+  async createTicket(ticketData: CreateTicketRequest): Promise<ApiResponse<ITicket>> {
     try {
       // 1. Validate input
       const validationRules = {
@@ -225,7 +227,7 @@ class TicketService {
       }
 
       // 6. Make API request
-      const response = await apiClient.post<ApiResponse<Ticket>>(
+      const response = await apiClient.post<ApiResponse<ITicket>>(
         TICKET_ENDPOINTS.TICKETS,
         formData,
         formData instanceof FormData ? {
@@ -258,7 +260,7 @@ class TicketService {
     }
   }
 
-  async updateTicket(ticketId: string, ticketData: UpdateTicketRequest): Promise<ApiResponse<Ticket>> {
+  async updateTicket(ticketId: string, ticketData: UpdateTicketRequest): Promise<ApiResponse<ITicket>> {
     try {
       // 1. Validate required ID
       if (!ticketId || ticketId.trim().length === 0) {
@@ -312,7 +314,7 @@ class TicketService {
       }
 
       // 4. Make API request
-      const response = await apiClient.put<ApiResponse<Ticket>>(
+      const response = await apiClient.put<ApiResponse<ITicket>>(
         TICKET_ENDPOINTS.TICKET_DETAIL(ticketId),
         sanitizedData
       );

@@ -11,8 +11,9 @@ import {
   Payment,
   PaymentRequest,
   ApiResponse,
-  PaginationParams 
+  PaginationParams,
 } from '../../types/api';
+import { ITicket, ITicketListResponse } from '../../types/ticket.types';
 
 export interface TicketStats {
   total: number;
@@ -25,15 +26,15 @@ export interface TicketStats {
 }
 
 export interface TicketSummary {
-  recentTickets: Ticket[];
-  upcomingDueDates: Ticket[];
+  recentTickets: ITicket[];
+  upcomingDueDates: ITicket[];
   totalFinesThisMonth: number;
   totalFinesThisYear: number;
 }
 
 export interface TicketState {
-  tickets: Ticket[];
-  currentTicket: Ticket | null;
+  tickets: ITicketListResponse[];
+  currentTicket: ITicket | null;
   disputes: Dispute[];
   currentDispute: Dispute | null;
   stats: TicketStats | null;
@@ -44,8 +45,11 @@ export interface TicketState {
     limit: number;
     total: number;
     totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
   isLoading: boolean;
+  isLoadingMore: boolean;
   isLoadingTicket: boolean;
   isLoadingDispute: boolean;
   isCreating: boolean;
@@ -71,8 +75,11 @@ const initialState: TicketState = {
     limit: 20,
     total: 0,
     totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
   },
   isLoading: false,
+  isLoadingMore: false,
   isLoadingTicket: false,
   isLoadingDispute: false,
   isCreating: false,
@@ -91,15 +98,27 @@ export const fetchTickets = createAsyncThunk(
   async (params?: PaginationParams & TicketFilters, { rejectWithValue }) => {
     try {
       const response = await ticketService.getTickets(params);
+      console.log('Fetch Tickets Response:', response);
       if (response.success && response.data) {
+        // Handle the nested structure: response.data.data.tickets (double nesting from API client)
+        const apiData = response.data.data || response.data;
+        const tickets = apiData.tickets || apiData;
+
+        
+        const pagination = apiData.pagination || {
+          page: params?.page || 1,
+          limit: params?.limit || 20,
+          total: Array.isArray(tickets) ? tickets.length : 0,
+          totalPages: Math.ceil((Array.isArray(tickets) ? tickets.length : 0) / (params?.limit || 20)),
+          hasNextPage: false,
+          hasPrevPage: false,
+        };
+
+        
         return {
-          tickets: response.data,
-          pagination: response.pagination || {
-            page: params?.page || 1,
-            limit: params?.limit || 20,
-            total: response.data.length,
-            totalPages: Math.ceil(response.data.length / (params?.limit || 20)),
-          }
+          tickets,
+          pagination,
+          isLoadMore: (params?.page || 1) > 1,
         };
       } else {
         return rejectWithValue(response.message || 'Failed to fetch tickets');
@@ -384,42 +403,42 @@ const ticketSlice = createSlice({
     setPagination: (state, action: PayloadAction<Partial<typeof initialState.pagination>>) => {
       state.pagination = { ...state.pagination, ...action.payload };
     },
-    updateTicketInList: (state, action: PayloadAction<Ticket>) => {
-      const index = state.tickets.findIndex(ticket => ticket.id === action.payload.id);
+    updateTicketInList: (state, action: PayloadAction<ITicket>) => {
+      const index = state.tickets.findIndex(ticket => ticket._id === action.payload.id);
       if (index !== -1) {
         state.tickets[index] = action.payload;
       }
     },
     removeTicketFromList: (state, action: PayloadAction<string>) => {
-      state.tickets = state.tickets.filter(ticket => ticket.id !== action.payload);
+      state.tickets = state.tickets.filter(ticket => ticket._id !== action.payload);
     },
-    addTicketToList: (state, action: PayloadAction<Ticket>) => {
+    addTicketToList: (state, action: PayloadAction<ITicket>) => {
       state.tickets.unshift(action.payload);
     },
     markTicketAsPaid: (state, action: PayloadAction<string>) => {
       // Update ticket in list
-      const ticketIndex = state.tickets.findIndex(ticket => ticket.id === action.payload);
+      const ticketIndex = state.tickets.findIndex(ticket => ticket._id === action.payload);
       if (ticketIndex !== -1) {
         state.tickets[ticketIndex].status = 'Paid' as any;
         state.tickets[ticketIndex].updatedAt = new Date().toISOString();
       }
       
       // Update current ticket if it matches
-      if (state.currentTicket && state.currentTicket.id === action.payload) {
+      if (state.currentTicket && state.currentTicket._id === action.payload) {
         state.currentTicket.status = 'Paid' as any;
         state.currentTicket.updatedAt = new Date().toISOString();
       }
     },
     markTicketAsDisputed: (state, action: PayloadAction<string>) => {
       // Update ticket in list
-      const ticketIndex = state.tickets.findIndex(ticket => ticket.id === action.payload);
+      const ticketIndex = state.tickets.findIndex(ticket => ticket._id === action.payload);
       if (ticketIndex !== -1) {
         state.tickets[ticketIndex].status = 'Disputed' as any;
         state.tickets[ticketIndex].updatedAt = new Date().toISOString();
       }
       
       // Update current ticket if it matches
-      if (state.currentTicket && state.currentTicket.id === action.payload) {
+      if (state.currentTicket && state.currentTicket._id === action.payload) {
         state.currentTicket.status = 'Disputed' as any;
         state.currentTicket.updatedAt = new Date().toISOString();
       }
@@ -428,19 +447,34 @@ const ticketSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Fetch tickets cases
-      .addCase(fetchTickets.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchTickets.pending, (state, action) => {
+        const isLoadMore = (action.meta.arg?.page || 1) > 1;
+        if (isLoadMore) {
+          state.isLoadingMore = true;
+        } else {
+          state.isLoading = true;
+        }
         state.error = null;
       })
       .addCase(fetchTickets.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.tickets = action.payload.tickets;
+        state.isLoadingMore = false;
+        
+        if (action.payload.isLoadMore) {
+          // Append new tickets for load more
+          state.tickets = [...state.tickets, ...action.payload.tickets];
+        } else {
+          // Replace tickets for fresh load
+          state.tickets = action.payload.tickets;
+        }
+        
         state.pagination = action.payload.pagination;
         state.lastUpdated = Date.now();
         state.error = null;
       })
       .addCase(fetchTickets.rejected, (state, action) => {
         state.isLoading = false;
+        state.isLoadingMore = false;
         state.error = action.payload as string;
       })
       
@@ -481,11 +515,11 @@ const ticketSlice = createSlice({
       })
       .addCase(updateTicket.fulfilled, (state, action) => {
         state.isUpdating = false;
-        const index = state.tickets.findIndex(ticket => ticket.id === action.payload.id);
+        const index = state.tickets.findIndex(ticket => ticket._id === action.payload.id);
         if (index !== -1) {
           state.tickets[index] = action.payload;
         }
-        if (state.currentTicket && state.currentTicket.id === action.payload.id) {
+        if (state.currentTicket && state.currentTicket._id === action.payload.id) {
           state.currentTicket = action.payload;
         }
         state.error = null;
@@ -502,8 +536,8 @@ const ticketSlice = createSlice({
       })
       .addCase(deleteTicket.fulfilled, (state, action) => {
         state.isDeleting = false;
-        state.tickets = state.tickets.filter(ticket => ticket.id !== action.payload);
-        if (state.currentTicket && state.currentTicket.id === action.payload) {
+        state.tickets = state.tickets.filter(ticket => ticket._id !== action.payload);
+        if (state.currentTicket && state.currentTicket._id === action.payload) {
           state.currentTicket = null;
         }
         state.error = null;
@@ -521,13 +555,13 @@ const ticketSlice = createSlice({
       .addCase(payTicket.fulfilled, (state, action) => {
         state.isPaying = false;
         // Update ticket status to paid
-        const ticketIndex = state.tickets.findIndex(ticket => ticket.id === action.payload.ticketId);
+        const ticketIndex = state.tickets.findIndex(ticket => ticket._id === action.payload.ticketId);
         if (ticketIndex !== -1) {
           state.tickets[ticketIndex].status = 'Paid' as any;
           state.tickets[ticketIndex].updatedAt = new Date().toISOString();
         }
         
-        if (state.currentTicket && state.currentTicket.id === action.payload.ticketId) {
+        if (state.currentTicket && state.currentTicket._id === action.payload.ticketId) {
           state.currentTicket.status = 'Paid' as any;
           state.currentTicket.updatedAt = new Date().toISOString();
         }
@@ -548,13 +582,13 @@ const ticketSlice = createSlice({
         state.disputes.unshift(action.payload.dispute);
         
         // Update ticket status to disputed
-        const ticketIndex = state.tickets.findIndex(ticket => ticket.id === action.payload.ticketId);
+        const ticketIndex = state.tickets.findIndex(ticket => ticket._id === action.payload.ticketId);
         if (ticketIndex !== -1) {
           state.tickets[ticketIndex].status = 'Disputed' as any;
           state.tickets[ticketIndex].updatedAt = new Date().toISOString();
         }
         
-        if (state.currentTicket && state.currentTicket.id === action.payload.ticketId) {
+        if (state.currentTicket && state.currentTicket._id === action.payload.ticketId) {
           state.currentTicket.status = 'Disputed' as any;
           state.currentTicket.updatedAt = new Date().toISOString();
         }
@@ -629,7 +663,7 @@ const ticketSlice = createSlice({
       .addCase(bulkUpdateTickets.fulfilled, (state, action) => {
         const { ticketIds, updates } = action.payload;
         ticketIds.forEach(ticketId => {
-          const index = state.tickets.findIndex(ticket => ticket.id === ticketId);
+          const index = state.tickets.findIndex(ticket => ticket._id === ticketId);
           if (index !== -1) {
             state.tickets[index] = { ...state.tickets[index], ...updates, updatedAt: new Date().toISOString() };
           }
@@ -641,7 +675,7 @@ const ticketSlice = createSlice({
       })
       
       .addCase(bulkDeleteTickets.fulfilled, (state, action) => {
-        state.tickets = state.tickets.filter(ticket => !action.payload.includes(ticket.id));
+        state.tickets = state.tickets.filter(ticket => !action.payload.includes(ticket._id));
         state.error = null;
       })
       .addCase(bulkDeleteTickets.rejected, (state, action) => {
@@ -676,6 +710,7 @@ export const selectTicketSummary = (state: { tickets: TicketState }) => state.ti
 export const selectTicketFilters = (state: { tickets: TicketState }) => state.tickets.filters;
 export const selectTicketPagination = (state: { tickets: TicketState }) => state.tickets.pagination;
 export const selectTicketLoading = (state: { tickets: TicketState }) => state.tickets.isLoading;
+export const selectTicketLoadingMore = (state: { tickets: TicketState }) => state.tickets.isLoadingMore;
 export const selectTicketError = (state: { tickets: TicketState }) => state.tickets.error;
 export const selectIsCreatingTicket = (state: { tickets: TicketState }) => state.tickets.isCreating;
 export const selectIsUpdatingTicket = (state: { tickets: TicketState }) => state.tickets.isUpdating;

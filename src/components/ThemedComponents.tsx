@@ -321,7 +321,7 @@ export const StatusBadge = ({ status, label, size = "md" }: StatusBadgeProps) =>
 
   return (
     <View className={`${getStatusClasses()} ${getSizeClasses()} rounded-full`}>
-      <Text className="font-medium text-center">{label}</Text>
+      <Text className={`font-medium text-center px-1 ${useTheme().theme === "dark" ? "text-white" : "text-neutral-700"}`}>{label.charAt(0).toUpperCase() + label.slice(1)}</Text>
     </View>
   );
 };

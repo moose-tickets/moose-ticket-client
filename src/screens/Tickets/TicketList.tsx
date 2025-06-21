@@ -9,7 +9,7 @@ import { useTheme } from '../../wrappers/ThemeProvider';
 import AppLayout from '../../wrappers/layout';
 import Header from '../../components/Header';
 import TicketFilter from './TicketFilter';
-import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '../../components/ThemedComponents';
+import { ThemedView, ThemedText, ThemedCard, ThemedButton, StatusBadge } from '../../components/ThemedComponents';
 import { useAppDispatch, useAppSelector } from '../../store';
 import {
   fetchTickets,
@@ -19,14 +19,15 @@ import {
   selectTickets,
   selectTicketFilters,
   selectTicketLoading,
+  selectTicketLoadingMore,
   selectTicketError,
   selectTicketPagination,
 } from '../../store/slices/ticketSlice';
 
 const STATUS_MAPPING: Record<string, 'success' | 'error' | 'warning'> = {
-  Paid: 'success',
-  Outstanding: 'error',
-  Disputed: 'warning',
+  paid: 'success',
+  outstanding: 'error',
+  disputed: 'warning',
 };
 
 export default function TicketListScreen() {
@@ -38,10 +39,12 @@ export default function TicketListScreen() {
   const tickets = useAppSelector(selectTickets);
   const filters = useAppSelector(selectTicketFilters);
   const isLoading = useAppSelector(selectTicketLoading);
+  const isLoadingMore = useAppSelector(selectTicketLoadingMore);
   const error = useAppSelector(selectTicketError);
   const pagination = useAppSelector(selectTicketPagination);
   
   // Local state
+  // 'pending' | 'paid' | 'disputed' | 'cancelled' | 'overdue';
   const [tab, setTab] = useState<'All' | 'Paid' | 'Outstanding' | 'Disputed'>('All');
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,9 +59,9 @@ export default function TicketListScreen() {
     if (tab === 'All') {
       dispatch(clearFilters());
     } else {
-      dispatch(setFilters({ status: tab as any }));
+      dispatch(setFilters({ status: tab.toLocaleLowerCase() as any }));
     }
-    dispatch(fetchTickets({ page: 1, limit: 20, status: tab === 'All' ? undefined : tab as any }));
+    dispatch(fetchTickets({ page: 1, limit: 20, status: tab === 'All' ? undefined : tab.toLocaleLowerCase() as any }));
   }, [tab, dispatch]);
 
   // Handle refresh
@@ -67,20 +70,35 @@ export default function TicketListScreen() {
     await dispatch(fetchTickets({ 
       page: 1, 
       limit: 20, 
-      status: tab === 'All' ? undefined : tab as any 
+      status: tab === 'All' ? undefined : tab.toLocaleLowerCase() as any 
     }));
     setRefreshing(false);
   };
 
   // Handle load more
   const handleLoadMore = () => {
-    if (!isLoading && pagination.page < pagination.totalPages) {
+    if (!isLoading && !isLoadingMore && (pagination.hasNextPage || pagination.page < pagination.totalPages)) {
       dispatch(fetchTickets({ 
         page: pagination.page + 1, 
         limit: 20, 
         status: tab === 'All' ? undefined : tab as any 
       }));
     }
+  };
+
+  console.log('Tickets:', tickets.length);
+
+  // Render loading footer
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+
+    return (
+      <ThemedView className='py-4 items-center'>
+        <ThemedText variant='secondary' size='sm'>
+          Loading more tickets...
+        </ThemedText>
+      </ThemedView>
+    );
   };
 
   return (
@@ -133,17 +151,18 @@ export default function TicketListScreen() {
           }
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.1}
+          ListFooterComponent={renderFooter}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate('TicketDetail', { ticketId: item.id })
+                navigation.navigate('TicketDetail', { ticketId: item._id })
               }
             >
               <ThemedCard className='mb-3' variant={theme === 'dark' ? 'elevated': 'default'}>
                 {/* Plate & Amount */}
                 <ThemedView className='flex-row justify-between items-center mb-1'>
                   <ThemedText weight='bold'>
-                    {item.vehicle?.plate || item.licensePlate || 'N/A'}
+                    {item.vehicle.licensePlate}
                   </ThemedText>
                   <ThemedText size='base'>
                     {item.fine?.currency || '$'} {(item.fine?.amount || item.amount || 0).toFixed(2)}
@@ -158,7 +177,7 @@ export default function TicketListScreen() {
                       day: 'numeric',
                       year: 'numeric',
                     })}{' '}
-                    · {item.location?.street || item.location || 'Location'}
+                    · {item.location?.address?.street1 || item.location?.street || 'Location'}
                   </ThemedText>
                   <StatusBadge
                     status={STATUS_MAPPING[item.status] ?? 'info'}
@@ -170,12 +189,12 @@ export default function TicketListScreen() {
                 {/* Infraction Icon & Label */}
                 <ThemedView className='flex-row items-center'>
                   <MaterialCommunityIcons
-                    name={(item.infraction?.icon as any) || 'alert-circle-outline'}
+                    name={(item.infractionType?.icon as any) || 'alert-circle-outline'}
                     size={20}
                     color={theme === 'dark' ? '#FFA366' : '#E18743'}
                     style={{ marginRight: 8 }}
                   />
-                  <ThemedText>{item.infraction?.type || item.violationType || 'Traffic Violation'}</ThemedText>
+                  <ThemedText>{item.infractionType?.type || item.violationType || 'Traffic Violation'}</ThemedText>
                 </ThemedView>
               </ThemedCard>
             </TouchableOpacity>

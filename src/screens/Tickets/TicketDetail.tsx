@@ -1,7 +1,7 @@
 // src/screens/Tickets/TicketDetail.tsx
 
-import React, { use, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useTicketStackNavigation } from '../../navigation/hooks';
@@ -10,52 +10,79 @@ import { useTheme } from '../../wrappers/ThemeProvider';
 import AppLayout from '../../wrappers/layout';
 
 import MapWebView from '../../components/MapWebView';
-import { allTickets, Ticket } from '../../../dummyDb/ticketresponse';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton, ThemedScrollView, StatusBadge } from '../../components/ThemedComponents';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { fetchTicket, selectCurrentTicket, selectTicketLoading, selectTicketError } from '../../store/slices/ticketSlice';
 
 export default function TicketDetail() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
   const route = useRoute<RouteProp<TicketStackParamList, 'TicketDetail'>>();
   const ticketId = route.params.ticketId;
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const ticket = useAppSelector(selectCurrentTicket);
+  const isLoading = useAppSelector(selectTicketLoading);
+  const error = useAppSelector(selectTicketError);
+  
+  // Local state
   const [openSection, setOpenSection] = useState<string | null>(null);
-  const [isDisputeTicket, setIsDisputeTicket] = useState<boolean>(true);
-  const toggleAccordion = (section: string) =>
-    setOpenSection((prev) => (prev === section ? null : section));
-  const [ticket, setTicket] = useState<Ticket | null>(null);
   const [paymentCalculations, setPaymentCalculations] = useState({
     baseFine: 0,
-    adminFee: 1, // or ticket.fine.adminFee if you add it
+    adminFee: 1,
     hst: '0',
     total: 0,
   });
 
-  // Simulate fetching ticket data
-  useEffect(() => {
-    allTickets.find((t) => t.ticket_id === ticketId)
-      ? setTicket(allTickets.find((t) => t.ticket_id === ticketId)!)
-      : setTicket(null);
-  }, [ticketId, allTickets]);
+  const toggleAccordion = (section: string) =>
+    setOpenSection((prev) => (prev === section ? null : section));
 
-  // check if ticket is in dispute
+  // Fetch ticket data
+  useEffect(() => {
+    if (ticketId) {
+      dispatch(fetchTicket(ticketId));
+    }
+  }, [ticketId, dispatch]);
+
+  // Calculate payment breakdown
   useEffect(() => {
     if (ticket) {
+      const baseFine = ticket.amount || 0;
+      const adminFee = 1;
+      const hst = +(baseFine * 0.13).toFixed(2);
+      const total = baseFine + adminFee + hst;
+
       setPaymentCalculations({
-        baseFine: ticket.fine.amount,
-        adminFee: 1,
-        hst: (ticket.fine.amount * 0.13).toFixed(2),
-        total: ticket.fine.amount + 1 + +(ticket.fine.amount * 0.13).toFixed(2),
+        baseFine,
+        adminFee,
+        hst: hst.toFixed(2),
+        total,
       });
-      if (ticket.status === 'Disputed') {
-        setIsDisputeTicket(false);
-      }
     }
   }, [ticket]);
 
+  const getStatusBadgeType = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid': return 'success';
+      case 'outstanding': case 'unpaid': case 'overdue': return 'error';
+      case 'disputed': return 'warning';
+      default: return 'info' as const;
+    }
+  };
+
   return (
     <AppLayout scrollable={false}>
-      {!ticket ? (
+      {isLoading ? (
+        <ThemedView className='flex-1 items-center justify-center'>
+          <ThemedText variant='secondary'>Loading ticket details...</ThemedText>
+        </ThemedView>
+      ) : error ? (
+        <ThemedView className='flex-1 items-center justify-center'>
+          <ThemedText variant='secondary'>{error}</ThemedText>
+        </ThemedView>
+      ) : !ticket ? (
         <ThemedView className='flex-1 items-center justify-center'>
           <ThemedText variant='secondary'>Ticket not found</ThemedText>
         </ThemedView>
@@ -72,15 +99,15 @@ export default function TicketDetail() {
             <ThemedView className='flex-row items-center justify-between mb-3'>
               <ThemedView className='flex-row items-center'>
                 <MaterialCommunityIcons
-                  name={ticket.infraction.icon as any}
+                  name={(ticket.infractionType?.icon as any) || 'alert-circle-outline'}
                   size={20}
                   color={theme === 'dark' ? '#FFFFFF' : '#10472B'}
                   style={{ marginRight: 8 }}
                 />
-                <ThemedText>{ticket.infraction.type}</ThemedText>
+                <ThemedText>{ticket.infractionType?.type || 'Traffic Violation'}</ThemedText>
               </ThemedView>
               <StatusBadge
-                status={ticket.status === 'Paid' ? 'success' : ticket.status === 'Outstanding' ? 'error' : 'warning'}
+                status={getStatusBadgeType(ticket.status)}
                 label={ticket.status}
               />
             </ThemedView>
@@ -89,13 +116,13 @@ export default function TicketDetail() {
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>Plate:</ThemedText>
               <ThemedText weight='semibold'>
-                {ticket.vehicle.plate}
+                {ticket.vehicle?.licensePlate || 'N/A'}
               </ThemedText>
             </ThemedView>
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>Ticket #:</ThemedText>
               <ThemedText weight='semibold'>
-                {ticket.ticket_id}
+                {ticket.ticketNumber || ticket._id}
               </ThemedText>
             </ThemedView>
 
@@ -103,13 +130,13 @@ export default function TicketDetail() {
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>Issued by:</ThemedText>
               <ThemedText weight='semibold'>
-                {ticket.enforcement.agency}
+                {ticket.metadata?.issuingAuthority || 'Municipal Authority'}
               </ThemedText>
             </ThemedView>
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>Date & Time:</ThemedText>
               <ThemedText weight='semibold'>
-                {new Date(ticket.issue_date).toLocaleString('en-CA', {
+                {new Date(ticket.violationDate || ticket.createdAt).toLocaleString('en-CA', {
                   month: 'long',
                   day: 'numeric',
                   year: 'numeric',
@@ -121,18 +148,20 @@ export default function TicketDetail() {
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>Location:</ThemedText>
               <ThemedText weight='semibold'>
-                {ticket.location.street}
+                {ticket.location?.address?.street1 || 'Location not specified'}
               </ThemedText>
             </ThemedView>
 
             {/* Map of Ticket Location */}
-            <MapWebView
-              latitude={ticket.location.coordinates.lat}
-              longitude={ticket.location.coordinates.lng}
-              zoom={16}
-              apiKey={'' /* your Google Embed API key if you have one */}
-              style={{ height: 240, marginHorizontal: 16, borderRadius: 12 }}
-            />
+            {ticket.location?.coordinates?.lat && ticket.location?.coordinates?.lng && (
+              <MapWebView
+                latitude={ticket.location.coordinates.lat}
+                longitude={ticket.location.coordinates.lng}
+                zoom={16}
+                apiKey={'' /* your Google Embed API key if you have one */}
+                style={{ height: 240, marginHorizontal: 16, borderRadius: 12 }}
+              />
+            )}
           </ThemedCard>
 
           {/* Fine Breakdown */}
@@ -164,13 +193,13 @@ export default function TicketDetail() {
           {/* Actions */}
           <ThemedView className='px-4 mb-6'>
             <ThemedButton
-              variant={ticket.status === 'Paid' ? undefined : 'primary'}
+              variant={ticket.status.toLowerCase() === 'paid' ? undefined : 'primary'}
               size='lg'
-              disabled={ticket.status === 'Paid'}
+              disabled={ticket.status.toLowerCase() === 'paid'}
               onPress={() =>
-                ticket.status === 'Paid'
+                ticket.status.toLowerCase() === 'paid'
                   ? undefined
-                  : navigation.navigate('PayNow', { ticketId: ticket.ticket_id })
+                  : navigation.navigate('PayNow', { ticketId: ticket._id })
               }
               className='mb-3'
             >
@@ -178,19 +207,19 @@ export default function TicketDetail() {
             </ThemedButton>
 
             <ThemedButton
-              variant={ticket.status === 'Paid' ? undefined : 'primary'}
+              variant={ticket.status.toLowerCase() === 'paid' ? undefined : 'primary'}
               size='lg'
               onPress={() =>
-                ticket.status === 'Disputed'
+                ticket.status.toLowerCase() === 'disputed'
                   ? navigation.navigate('TicketDisputeStatus', {
-                      ticketId: ticket.ticket_id,
+                      ticketId: ticket._id,
                     })
-                  : ticket.status === 'Paid' ? undefined : navigation.navigate('DisputeForm', { ticketId: ticket.ticket_id })
+                  : ticket.status.toLowerCase() === 'paid' ? undefined : navigation.navigate('DisputeForm', { ticketId: ticket._id })
               }
-              disabled={ticket.status === 'Paid' ? true : false}
+              disabled={ticket.status.toLowerCase() === 'paid'}
               className='mb-3'
             >
-              {ticket.status !== 'Disputed'
+              {ticket.status.toLowerCase() !== 'disputed'
                 ? 'Dispute Ticket'
                 : 'Check Dispute Status'}
             </ThemedButton>
@@ -217,7 +246,7 @@ export default function TicketDetail() {
             {openSection === 'violation' && (
               <ThemedView className='py-3'>
                 <ThemedText variant='secondary' size='sm' className='leading-relaxed'>
-                  {ticket.infraction.description}
+                  {ticket.infractionType?.description || ticket.description || 'No description available'}
                 </ThemedText>
               </ThemedView>
             )}
@@ -238,12 +267,12 @@ export default function TicketDetail() {
             </TouchableOpacity>
             {openSection === 'history' && (
               <ThemedView className='py-3'>
-                {ticket.payment_history.length > 0 ? (
-                  ticket.payment_history.map((p, idx) => (
+                {ticket.paymentHistory && ticket.paymentHistory.length > 0 ? (
+                  ticket.paymentHistory.map((payment, idx) => (
                     <ThemedView key={idx} className='mb-2'>
                       <ThemedText variant='secondary' size='sm'>
-                        {new Date(p.date).toLocaleDateString('en-CA')} –{' '}
-                        {p.type}: ${p.amount.toFixed(2)}
+                        {new Date(payment.paymentDate).toLocaleDateString('en-CA')} –{' '}
+                        {payment.status}: ${payment.amount.toFixed(2)}
                       </ThemedText>
                     </ThemedView>
                   ))
@@ -271,7 +300,9 @@ export default function TicketDetail() {
             </TouchableOpacity>
             {openSection === 'note' && (
               <ThemedView className='py-3'>
-                <ThemedText variant='secondary' size='sm'>No Note available</ThemedText>
+                <ThemedText variant='secondary' size='sm'>
+                  {ticket.evidence?.officerNotes || 'No notes available'}
+                </ThemedText>
               </ThemedView>
             )}
           </ThemedView>

@@ -1,6 +1,5 @@
 // src/services/notificationService.ts
 import apiClient from "./apiClients";
-import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   Notification,
   CreateNotificationRequest,
@@ -45,7 +44,7 @@ class NotificationService {
       if (params?.isRead !== undefined) sanitizedParams.isRead = params.isRead;
       if (params?.filter) sanitizedParams.filter = params.filter;
 
-      // 2. Make API request
+      // 1. Make API request
       const response = await apiClient.get<ApiResponse<Notification[]>>(
         NOTIFICATION_ENDPOINTS.NOTIFICATIONS,
         { params: sanitizedParams }
@@ -75,7 +74,7 @@ class NotificationService {
         };
       }
 
-      // 2. Make API request
+      // 1. Make API request
       const response = await apiClient.get<ApiResponse<Notification>>(
         NOTIFICATION_ENDPOINTS.NOTIFICATION_DETAIL(notificationId)
       );
@@ -112,21 +111,7 @@ class NotificationService {
         };
       }
 
-      // 2. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        { action: 'mark_notification_read', notificationId }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 3. Make API request
+      // 2. Make API request
       const response = await apiClient.patch<ApiResponse<Notification>>(
         NOTIFICATION_ENDPOINTS.MARK_READ(notificationId)
       );
@@ -150,21 +135,8 @@ class NotificationService {
 
   async markAllAsRead(): Promise<ApiResponse<{ message: string; count: number }>> {
     try {
-      // 1. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        { action: 'mark_all_notifications_read' }
-      );
 
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 2. Make API request
+      // 1. Make API request
       const response = await apiClient.patch<ApiResponse<{ message: string; count: number }>>(
         NOTIFICATION_ENDPOINTS.MARK_ALL_READ
       );
@@ -197,21 +169,7 @@ class NotificationService {
         };
       }
 
-      // 2. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        { action: 'delete_notification', notificationId }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 3. Make API request
+      // 2. Make API request
       const response = await apiClient.delete<ApiResponse<{ message: string }>>(
         NOTIFICATION_ENDPOINTS.NOTIFICATION_DETAIL(notificationId)
       );
@@ -281,21 +239,7 @@ class NotificationService {
         platform,
       };
 
-      // 3. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 4. Make API request
+      // 3. Make API request
       const response = await apiClient.post<ApiResponse<{ message: string }>>(
         '/notifications/push-token',
         sanitizedData
@@ -335,21 +279,7 @@ class NotificationService {
         token: token.trim(),
       };
 
-      // 3. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 4. Make API request
+      // 3. Make API request
       const response = await apiClient.delete<ApiResponse<{ message: string }>>(
         '/notifications/push-token',
         { data: sanitizedData }
@@ -407,21 +337,7 @@ class NotificationService {
       if (settings.sms !== undefined) sanitizedData.sms = settings.sms;
       if (settings.types) sanitizedData.types = settings.types;
 
-      // 2. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.PROFILE_UPDATE,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 3. Make API request
+      // 2. Make API request
       const response = await apiClient.put<ApiResponse<{ email: boolean; push: boolean; sms: boolean; types: Record<string, boolean> }>>(
         NOTIFICATION_ENDPOINTS.SETTINGS,
         sanitizedData
@@ -474,21 +390,7 @@ class NotificationService {
         message: message ? sanitizeUserContent(message) : undefined,
       };
 
-      // 3. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
-      // 4. Make API request
+      // 3. Make API request
       const response = await apiClient.post<ApiResponse<{ message: string }>>(
         '/notifications/test',
         sanitizedData
@@ -586,19 +488,6 @@ class NotificationService {
         timezone: (val: string) => val.trim(),
       });
 
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.PROFILE_UPDATE,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
       const response = await apiClient.put<ApiResponse<any>>(
         NOTIFICATION_ENDPOINTS.PREFERENCES,
         sanitizedData
@@ -631,19 +520,6 @@ class NotificationService {
         notificationIds: notificationIds.map(id => id.trim()),
       };
 
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
-
       const response = await apiClient.patch<ApiResponse<any>>(
         '/notifications/bulk-read',
         sanitizedData
@@ -674,19 +550,6 @@ class NotificationService {
       const sanitizedData = {
         notificationIds: notificationIds.map(id => id.trim()),
       };
-
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
 
       const response = await apiClient.delete<ApiResponse<any>>(
         '/notifications/bulk-delete',

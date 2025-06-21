@@ -59,9 +59,9 @@ const initialState: AuthState = {
 // Async Thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; password: string; rememberMe?: boolean }, { rejectWithValue }) => {
+  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      console.log(credentials)
+      console.log('CREDENTIALS:::',credentials)
       const response = await authService.login(credentials);
       console.log(response)
       // Check if response is in the new format

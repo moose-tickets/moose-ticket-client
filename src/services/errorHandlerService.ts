@@ -52,10 +52,7 @@ class ErrorHandlerService {
       return true;
     }
 
-    // Rate limiting (429) should be retried with backoff
-    if (status === 429) {
-      return true;
-    }
+    // Rate limiting removed
 
     // Timeout errors
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
@@ -77,8 +74,8 @@ class ErrorHandlerService {
 
     const status = error.response.status;
     
-    // Client errors (4xx) except 429 are usually user errors
-    return status >= 400 && status < 500 && status !== 429;
+    // Client errors (4xx) are usually user errors
+    return status >= 400 && status < 500;
   }
 
   private getErrorCode(error: AxiosError): string {
@@ -98,7 +95,7 @@ class ErrorHandlerService {
       case 404: return 'NOT_FOUND';
       case 409: return 'CONFLICT';
       case 422: return 'VALIDATION_ERROR';
-      case 429: return 'RATE_LIMITED';
+      // Rate limiting removed
       case 500: return 'INTERNAL_SERVER_ERROR';
       case 502: return 'BAD_GATEWAY';
       case 503: return 'SERVICE_UNAVAILABLE';
@@ -139,8 +136,7 @@ class ErrorHandlerService {
         return 'This action conflicts with existing data.';
       case 422:
         return 'Please check your input and try again.';
-      case 429:
-        return 'Too many requests. Please wait a moment and try again.';
+      // Rate limiting removed
       case 500:
         return 'A server error occurred. Please try again later.';
       case 502:
@@ -229,11 +225,13 @@ class ErrorHandlerService {
         const delay = this.calculateDelay(attempt, config);
         
         // Log retry attempt
-        console.warn(`Request failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${delay}ms:`, {
-          endpoint: context.endpoint,
-          method: context.method,
-          error: this.getErrorCode(lastError),
-        });
+        // if(attempt === (config.maxRetries + 1)){
+          console.warn(`Request failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${delay}ms:`, {
+            endpoint: context.endpoint,
+            method: context.method,
+            error: this.getErrorCode(lastError),
+          });
+        // }
 
         // Call retry callback if provided
         if (config.onRetry) {
@@ -343,23 +341,7 @@ class ErrorHandlerService {
     return this.toApiResponse(error, context);
   }
 
-  handleRateLimitError(error: AxiosError, context: Partial<ErrorContext> = {}): ApiResponse {
-    const retryAfter = error.response?.headers['retry-after'];
-    
-    let message = 'Too many requests. Please wait a moment and try again.';
-    if (retryAfter) {
-      const seconds = parseInt(retryAfter);
-      if (!isNaN(seconds)) {
-        message = `Too many requests. Please wait ${seconds} seconds and try again.`;
-      }
-    }
-
-    return {
-      success: false,
-      error: 'RATE_LIMITED',
-      message,
-    };
-  }
+  // Rate limit error handling removed
 
   // Global Error Handler
   handleError(error: AxiosError, context: Partial<ErrorContext> = {}): ApiResponse {
@@ -375,8 +357,7 @@ class ErrorHandlerService {
         return this.handleAuthError(error, context);
       case 422:
         return this.handleValidationError(error, context);
-      case 429:
-        return this.handleRateLimitError(error, context);
+      // Rate limiting removed
       default:
         const standardError = this.standardizeError(error, context);
         

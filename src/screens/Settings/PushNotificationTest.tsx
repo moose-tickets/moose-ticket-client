@@ -62,7 +62,7 @@ const PushNotificationTest: React.FC = () => {
   const handleRefreshToken = async () => {
     setIsRefreshing(true);
     try {
-      await pushNotificationManager.refreshToken();
+      // await pushNotificationManager.refreshToken();
       Alert.alert('Success', 'Push token refreshed successfully!');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to refresh token');

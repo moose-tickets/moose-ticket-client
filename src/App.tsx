@@ -199,6 +199,7 @@ import pushNotificationManager from "./utils/pushNotifications";
 import store from "./store";
 import AppNavigator from "./navigation/AppNavigator";
 import { ThemeProvider } from "./wrappers/ThemeProvider";
+import { AppInitializer } from "./components/AppInitializer";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -251,7 +252,11 @@ function AppContent() {
     return null;
   }
 
-  return <AppNavigator />;
+  return (
+    <AppInitializer>
+      <AppNavigator />
+    </AppInitializer>
+  );
 }
 
 export default function App() {

@@ -18,8 +18,6 @@ import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import { useBotCheck } from '../../hooks/UseBotCheck';
-import { useRateLimit } from '../../hooks/useRateLimit';
-import { SecurityActionType } from '../../services/unifiedSecurityService';
 import { validateCreditCard, validateCVV, validateRequired } from '../../utils/validators';
 import { sanitizeCreditCard, sanitizeCVV, sanitizeName, sanitizeFormData, redactForLogging } from '../../utils/sanitize';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -68,17 +66,6 @@ export default function AddCard() {
     }
   });
 
-  const { executeWithRateLimit, isRateLimited } = useRateLimit({
-    type: SecurityActionType.PAYMENT_ATTEMPT,
-    onRateLimited: (result) => {
-      setDialogProps({
-        title: "Too Many Payment Attempts",
-        message: `Please wait before submitting another payment. Try again after ${result.resetTime.toLocaleTimeString()}`,
-        type: "warning",
-      });
-      setDialogVisible(true);
-    }
-  });
 
   const validateForm = () => {
     const errors: Record<string, string[]> = {};
@@ -125,7 +112,7 @@ export default function AddCard() {
   };
 
   const handleAddCard = async () => {
-    if (loading.create || isRateLimited) return;
+    if (loading.create) return;
 
     setValidationErrors({});
 
@@ -165,35 +152,33 @@ export default function AddCard() {
         setAsDefault: saveCard
       };
 
-      // 4. Perform security checks with rate limiting
-      await executeWithRateLimit(async () => {
-        // Bot detection
-        const botContext = await checkBot();
-        if (!botContext.isHuman && botContext.riskLevel === 'critical') {
-          throw new Error('Security verification failed');
-        }
+      // 4. Perform security checks
+      // Bot detection
+      const botContext = await checkBot();
+      if (!botContext.isHuman && botContext.riskLevel === 'critical') {
+        throw new Error('Security verification failed');
+      }
 
-        // Log sanitized data (with sensitive info redacted)
-        const logData = redactForLogging(sanitizedData);
-        console.log('Adding card with sanitized data:', logData);
+      // Log sanitized data (with sensitive info redacted)
+      const logData = redactForLogging(sanitizedData);
+      console.log('Adding card with sanitized data:', logData);
 
-        // Dispatch Redux action
-        await dispatch(createPaymentMethod(sanitizedData)).unwrap();
+      // Dispatch Redux action
+      await dispatch(createPaymentMethod(sanitizedData)).unwrap();
 
-        // Success
-        setDialogProps({
-          title: "Card Added Successfully",
-          message: "Your payment method has been added securely.",
-          type: "success",
-        });
-        setDialogVisible(true);
-
-        // Navigate back after delay
-        setTimeout(() => {
-          setDialogVisible(false);
-          navigation.goBack();
-        }, 2000);
+      // Success
+      setDialogProps({
+        title: "Card Added Successfully",
+        message: "Your payment method has been added securely.",
+        type: "success",
       });
+      setDialogVisible(true);
+
+      // Navigate back after delay
+      setTimeout(() => {
+        setDialogVisible(false);
+        navigation.goBack();
+      }, 2000);
 
     } catch (error: any) {
       console.error('Add card error:', error);

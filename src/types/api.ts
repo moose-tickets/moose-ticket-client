@@ -10,6 +10,14 @@ export interface ApiResponse<T = any> {
     total?: number;
     totalPages?: number;
   };
+  pagination?: {
+    totalPages: number;
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
 }
 
 export interface PaginationParams {
@@ -188,6 +196,8 @@ export interface Ticket {
   updatedAt: string;
 }
 
+
+
 export interface CreateTicketRequest {
   licensePlate: string;
   violationType: string;
@@ -217,10 +227,32 @@ export interface TicketFilters {
   status?: Ticket['status'][];
   dateFrom?: string;
   dateTo?: string;
+  startDate?: string;
+  endDate?: string;
   minAmount?: number;
   maxAmount?: number;
   licensePlate?: string;
   city?: string;
+  violationType?: string;
+  infractionCode?: string;
+  infractionCategory?: 'stationary' | 'moving';
+  search?: string;
+  userId?: string;
+}
+
+// Infraction Types
+export interface Infraction {
+  id: number;
+  code: string;
+  type: string;
+  icon: string;
+  category: 'stationary' | 'moving';
+  description?: string;
+  baseFine?: number;
+  points?: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Payment Types
@@ -304,7 +336,11 @@ export interface UpdateVehicleRequest {
 // Notification Types
 export interface Notification {
   id: string;
-  type: 'ticket_reminder' | 'payment_confirmation' | 'dispute_update' | 'system_update';
+  type:
+    | 'ticket_reminder'
+    | 'payment_confirmation'
+    | 'dispute_update'
+    | 'system_update';
   title: string;
   message: string;
   isRead: boolean;

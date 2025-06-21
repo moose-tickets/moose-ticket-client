@@ -2,7 +2,6 @@
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { InfractionType, infractionTypes } from '../../../dummyDb/infractionTypes';
 
 export default function InfractionList() {
   const renderItem = ({ item }: { item: InfractionType }) => (

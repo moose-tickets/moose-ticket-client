@@ -1,6 +1,5 @@
 // src/services/fileService.ts
 import apiClient from "./apiClients";
-import unifiedSecurityService, { SecurityActionType } from "./unifiedSecurityService";
 import { 
   FileUploadResponse,
   UploadProgressEvent,
@@ -128,25 +127,8 @@ class FileService {
         };
       }
 
-      // 2. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.FILE_UPLOAD,
-        { 
-          filename: file.name,
-          fileSize: file.size,
-          fileType: file.type,
-          category,
-          folder: options.folder
-        }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
+      // 2. Security checks disabled - rate limiting removed
+      console.log('File upload security check bypassed');
 
       // 3. Prepare form data
       const formData = new FormData();
@@ -235,25 +217,9 @@ class FileService {
         };
       }
 
-      // 2. Perform security checks
+      // 2. Security checks disabled - rate limiting removed
       const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.FILE_UPLOAD,
-        { 
-          fileCount: files.length,
-          totalSize,
-          category,
-          folder: options.folder
-        }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
+      console.log('Multiple file upload security check bypassed');
 
       // 3. Prepare form data
       const formData = new FormData();
@@ -362,19 +328,8 @@ class FileService {
         };
       }
 
-      // 2. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        { action: 'delete_file', fileId }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
+      // 2. Security checks disabled - rate limiting removed
+      console.log('File delete security check bypassed');
 
       // 3. Make API request
       const response = await apiClient.delete<ApiResponse<{ message: string }>>(
@@ -409,19 +364,8 @@ class FileService {
         };
       }
 
-      // 2. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        { action: 'generate_download_url', fileId, expiresIn }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
+      // 2. Security checks disabled - rate limiting removed
+      console.log('Download URL generation security check bypassed');
 
       // 3. Make API request
       const params = expiresIn ? { expiresIn } : {};
@@ -487,19 +431,8 @@ class FileService {
         };
       }
 
-      // 3. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        { action: 'process_image', fileId, options: sanitizedOptions }
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
+      // 3. Security checks disabled - rate limiting removed
+      console.log('Image processing security check bypassed');
 
       // 4. Make API request
       const response = await apiClient.post<ApiResponse<FileUploadResponse>>(
@@ -597,19 +530,8 @@ class FileService {
         category,
       };
 
-      // 4. Perform security checks
-      const securityResult = await unifiedSecurityService.validateAction(
-        SecurityActionType.API_REQUEST,
-        sanitizedData
-      );
-
-      if (!securityResult.allowed) {
-        return {
-          success: false,
-          error: 'Unable to make Request',
-          message: securityResult.reason || 'Security validation failed'
-        };
-      }
+      // 4. Security checks disabled - rate limiting removed
+      console.log('Presigned URL generation security check bypassed');
 
       // 5. Make API request
       const response = await apiClient.post<ApiResponse<{ 

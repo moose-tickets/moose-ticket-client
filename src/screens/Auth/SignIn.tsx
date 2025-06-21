@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Alert,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useAuthStackNavigation } from '../../navigation/hooks';
@@ -12,13 +10,10 @@ import { useTheme } from '../../wrappers/ThemeProvider';
 import useStatusBarFix from '../../hooks/useStatusBarFix';
 import { ThemedView, ThemedText, ThemedButton } from '../../components/ThemedComponents';
 import InputField from '../../components/InputField';
-import App from '../../App';
 import AppLayout from '../../wrappers/layout';
 import Passport from './Passport';
 import Dialog from '../../components/Dialog';
 import { useBotCheck } from '../../hooks/UseBotCheck';
-import { useRateLimit } from '../../hooks/useRateLimit';
-import { SecurityActionType } from '../../services/unifiedSecurityService';
 import { validateEmail, validateRequired } from '../../utils/validators';
 import { sanitizeEmail, sanitizePassword } from '../../utils/sanitize';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -34,8 +29,8 @@ export default function SignIn() {
   
   // Fix status bar styling during navigation
   useStatusBarFix();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('user@example.com');
+  const [password, setPassword] = useState('SecurePassword123!');
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({
@@ -56,18 +51,6 @@ export default function SignIn() {
     }
   });
 
-  const { executeWithRateLimit, isRateLimited, remaining } = useRateLimit({
-    type: SecurityActionType.AUTH_LOGIN,
-    onRateLimited: (result) => {
-      const resetTimeStr = result.resetTime?.toLocaleTimeString() || 'later';
-      setDialogProps({
-        title: "Too Many Attempts",
-        message: `Please wait before trying again. You can try again after ${resetTimeStr}`,
-        type: "warning",
-      });
-      setDialogVisible(true);
-    }
-  });
 
 
   const validateForm = async () => {
@@ -120,7 +103,7 @@ export default function SignIn() {
   }, [error]);
 
   const handleSignIn = async () => {
-    if (isLoading || isRateLimited) return;
+    if (isLoading) return;
 
     // Clear previous errors
     dispatch(clearError());
@@ -137,21 +120,18 @@ export default function SignIn() {
       const sanitizedEmail = sanitizeEmail(email);
       const sanitizedPassword = sanitizePassword(password);
 
-      // 3. Perform security checks with rate limiting
-      await executeWithRateLimit(async () => {
-        // Bot detection
-        const botContext = await checkBot();
-        if (!botContext.isHuman && botContext.riskLevel === 'critical') {
-          throw new Error('Security check failed');
-        }
+      // 3. Perform bot detection check
+      const botContext = await checkBot();
+      if (!botContext.isHuman && botContext.riskLevel === 'critical') {
+        throw new Error('Security check failed');
+      }
 
-        // Dispatch Redux action to sign in
-        dispatch(loginUser({
-          email: sanitizedEmail,
-          password: sanitizedPassword,
-          rememberMe: true
-        }));
-      });
+      // Dispatch Redux action to sign in
+      dispatch(loginUser({
+        email: sanitizedEmail,
+        password: sanitizedPassword,
+        // rememberMe: true
+      }));
 
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -251,21 +231,14 @@ export default function SignIn() {
           </ThemedView>
         )}
 
-        {/* Rate Limit Warning */}
-        {isRateLimited && (
-          <ThemedView className="mb-4 p-3 bg-error-light rounded-xl">
-            <ThemedText variant="error" size="xs" className="text-center">
-              Too many attempts. {remaining} attempts remaining.
-            </ThemedText>
-          </ThemedView>
-        )}
+        {/* Rate limiting removed */}
 
         {/* Sign In Button */}
         <ThemedButton
           variant="primary"
           size="lg"
           onPress={handleSignIn}
-          disabled={isLoading || isRateLimited || (!isHuman && riskLevel === 'critical')}
+          disabled={isLoading || (!isHuman && riskLevel === 'critical')}
           className="mb-6"
         >
           {isLoading ? 'Signing In...' : 'Sign In'}

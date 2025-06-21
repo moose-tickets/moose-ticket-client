@@ -16,6 +16,7 @@ import disputeReducer from './slices/disputeSlice';
 import subscriptionReducer from './slices/subscriptionSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import consentReducer from './slices/consentSlice';
+import infractionTypeReducer from './slices/infractionTypeSlice';
 
 // Persist configuration
 const persistConfig = {
@@ -50,6 +51,7 @@ const rootReducer = combineReducers({
   subscriptions: subscriptionReducer,
   dashboard: dashboardReducer,
   consent: consentReducer,
+  infractionTypes: infractionTypeReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
