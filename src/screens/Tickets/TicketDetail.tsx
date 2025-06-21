@@ -155,7 +155,7 @@ export default function TicketDetail() {
                     'alert-circle-outline'
                   }
                   size={20}
-                  color={theme === 'dark' ? '#FFFFFF' : '#10472B'}
+                  color={theme === 'dark' ? '#FFA366' : '#10472B'}
                   style={{ marginRight: 8 }}
                 />
                 <ThemedText>
