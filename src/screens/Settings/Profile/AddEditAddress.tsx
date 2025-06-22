@@ -15,11 +15,13 @@ import AppLayout from '../../../wrappers/layout';
 import Checkbox from 'expo-checkbox';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput, ThemedScrollView } from '../../../components/ThemedComponents';
 import { useTheme } from '../../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 export default function AddEditAddress() {
   const navigation = useSettingsStackNavigation();
   const route = useRoute<RouteProp<SettingsStackParamList, 'EditAddress'>>();
   const { theme, presets } = useTheme();
+  const { t } = useTranslation();
   const userId = route.params.userId;
   const [street, setStreet] = useState('');
   const [apt, setApt] = useState('');
@@ -30,7 +32,7 @@ export default function AddEditAddress() {
 
   const handleSave = () => {
     if (!street || !city || !province || !postalCode) {
-      alert('Please fill all required fields.');
+      alert(t('profile.fillRequiredFields'));
       return;
     }
 
@@ -42,14 +44,14 @@ export default function AddEditAddress() {
     <AppLayout scrollable={false}>
       <ThemedScrollView className='flex-1 px-5'>
         {/* Header */}
-        <GoBackHeader screenTitle={userId ? 'Edit Address' : 'Add Address'} />
+        <GoBackHeader screenTitle={userId ? t('profile.editAddress') : t('profile.addAddress')} />
 
         {/* Input Fields */}
         <ThemedView className='space-y-4 py-10'>
           <ThemedView>
-            <ThemedText variant='primary' size='base' className='mb-1'>Street Address</ThemedText>
+            <ThemedText variant='primary' size='base' className='mb-1'>{t('profile.streetAddress')}</ThemedText>
             <ThemedInput
-              placeholder='e.g., 123 Main St'
+              placeholder={t('profile.streetAddressExample')}
               value={street}
               onChangeText={setStreet}
             />
@@ -57,26 +59,26 @@ export default function AddEditAddress() {
 
           <ThemedView>
             <ThemedText variant='primary' size='base' className='mb-1'>
-              Apt, Suite, Unit (Optional)
+              {t('profile.aptSuiteUnit')}
             </ThemedText>
             <ThemedInput
-              placeholder='e.g., Apt 4B'
+              placeholder={t('profile.aptSuiteUnitExample')}
               value={apt}
               onChangeText={setApt}
             />
           </ThemedView>
 
           <ThemedView>
-            <ThemedText variant='primary' size='base' className='mb-1'>City</ThemedText>
+            <ThemedText variant='primary' size='base' className='mb-1'>{t('profile.city')}</ThemedText>
             <ThemedInput
-              placeholder='e.g., Toronto'
+              placeholder={t('profile.cityExample')}
               value={city}
               onChangeText={setCity}
             />
           </ThemedView>
 
           <ThemedView>
-            <ThemedText variant='primary' size='base' className='mb-1'>Province / State</ThemedText>
+            <ThemedText variant='primary' size='base' className='mb-1'>{t('profile.provinceState')}</ThemedText>
             <ThemedView className='border border-border rounded-lg p-3'>
               <ThemedText variant='primary'>{province}</ThemedText>
               {/* You can expand this to a dropdown later */}
@@ -84,9 +86,9 @@ export default function AddEditAddress() {
           </ThemedView>
 
           <ThemedView>
-            <ThemedText variant='primary' size='base' className='mb-1'>Zip/Postal Code</ThemedText>
+            <ThemedText variant='primary' size='base' className='mb-1'>{t('profile.zipPostalCode')}</ThemedText>
             <ThemedInput
-              placeholder='e.g., M1A 2B3'
+              placeholder={t('profile.postalCodeExample')}
               value={postalCode}
               onChangeText={setPostalCode}
             />
@@ -99,7 +101,7 @@ export default function AddEditAddress() {
               className=''
             />
             <ThemedText variant='primary' size='base' className='mx-2'>
-              Use as billing address
+              {t('profile.useAsBillingAddress')}
             </ThemedText>
           </ThemedView>
         </ThemedView>
@@ -111,7 +113,7 @@ export default function AddEditAddress() {
           size='lg'
           className='mt-8'
         >
-          {userId ? 'Update Address' : 'Save Address'}
+{userId ? t('profile.updateAddress') : t('profile.saveAddress')}
         </ThemedButton>
 
         {/* Cancel */}
@@ -120,7 +122,7 @@ export default function AddEditAddress() {
           variant='ghost'
           className='mt-4'
         >
-          Cancel
+{t('common.cancel')}
         </ThemedButton>
       </ThemedScrollView>
     </AppLayout>

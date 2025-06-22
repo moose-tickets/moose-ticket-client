@@ -14,10 +14,12 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { useTicketStackNavigation } from '../../navigation/hooks';
 import { TicketStackParamList } from '../../navigation/types';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 export default function DisputeStatus() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const [dialogVisible, setDialogVisible] = useState(false);
   const route =
     useRoute<RouteProp<TicketStackParamList, 'TicketDisputeStatus'>>();
@@ -31,9 +33,8 @@ export default function DisputeStatus() {
 
   const handleCancelDispute = () => {
     setDialogProps({
-      title: 'Dispute Cancellation Request Sent',
-      message:
-        'Your request to cancel the dispute has been submitted. We will notify you once the cancellation is processed.',
+      title: t('dispute.cancellationRequestSent'),
+      message: t('dispute.cancellationRequestMessage'),
       type: 'success',
     });
     setDialogVisible(true);
@@ -43,13 +44,13 @@ export default function DisputeStatus() {
     <AppLayout scrollable={false}>
       <ThemedScrollView className='flex-1 px-5 '>
         {/* Header */}
-        <GoBackHeader screenTitle='Dispute Status' />
+        <GoBackHeader screenTitle={t('dispute.disputeStatus')} />
         {/* Ticket Info */}
         <View className='border border-gray-300 rounded-xl p-4 mb-4'>
-          <Text className='font-semibold'>Ticket #: 123 456 789</Text>
-          <Text className='text-gray-500'>Dispute Submitted: May 31, 2025</Text>
+          <Text className='font-semibold'>{t('tickets.ticketNumber')}: 123 456 789</Text>
+          <Text className='text-gray-500'>{t('dispute.disputeSubmittedDate')}: May 31, 2025</Text>
           <Text className='text-[#E08631] mt-1 font-medium'>
-            Current Status: Pending Review
+            {t('dispute.currentStatus')}: {t('dispute.pendingReview')}
           </Text>
         </View>
 
@@ -58,7 +59,7 @@ export default function DisputeStatus() {
           <View className='flex-row items-center mb-3'>
             <View className='w-3 h-3 rounded-full bg-[#E08631] mr-2' />
             <View>
-              <Text className='text-sm font-medium'>Submitted</Text>
+              <Text className='text-sm font-medium'>{t('dispute.submitted')}</Text>
               <Text className='text-xs text-gray-500'>
                 May 31, 2025 · 14:45
               </Text>
@@ -68,24 +69,23 @@ export default function DisputeStatus() {
           <View className='flex-row items-center mb-3'>
             <View className='w-3 h-3 rounded-full border-2 border-[#014421] bg-white mr-2' />
             <View>
-              <Text className='text-sm font-medium'>In Review</Text>
+              <Text className='text-sm font-medium'>{t('dispute.inReview')}</Text>
               <Text className='text-xs text-gray-500'>
-                Expected decision by Jun 7, 2025
+                {t('dispute.expectedDecisionBy')} Jun 7, 2025
               </Text>
             </View>
           </View>
 
           <View className='flex-row items-center mb-3'>
             <View className='w-3 h-3 rounded-full border border-gray-400 bg-white mr-2' />
-            <Text className='text-sm text-gray-500'>Resolved</Text>
+            <Text className='text-sm text-gray-500'>{t('dispute.resolved')}</Text>
           </View>
         </View>
 
         {/* Notes */}
-        <Text className='text-base font-semibold mb-1'>Notes from City</Text>
+        <Text className='text-base font-semibold mb-1'>{t('dispute.notesFromCity')}</Text>
         <Text className='text-gray-600 mb-6'>
-          Your evidence is under review. We may contact you for additional
-          details if necessary.
+          {t('dispute.evidenceUnderReview')}
         </Text>
 
         {/* Contact / Cancel */}
@@ -96,7 +96,7 @@ export default function DisputeStatus() {
             className='mb-3'
             onPress={() => console.log('Payment Contacting Support')}
           >
-            Contact Support
+{t('support.contactSupport')}
           </ThemedButton>
           <ThemedButton
             variant='primary'
@@ -104,12 +104,12 @@ export default function DisputeStatus() {
             className='mb-3'
             onPress={handleCancelDispute}
           >
-            Cancel Dispute
+{t('dispute.cancelDispute')}
           </ThemedButton>
         </ThemedView>
 
         <ThemedText variant='tertiary'  size='sm' className='text-center mb-8'>
-          You'll be notified by email once a decision is made.
+          {t('dispute.emailNotificationDecision')}
         </ThemedText>
       </ThemedScrollView>
       <Dialog

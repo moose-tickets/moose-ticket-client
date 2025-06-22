@@ -6,15 +6,17 @@ import AppLayout from "../../wrappers/layout";
 import GoBackHeader from "../../components/GoBackHeader";
 import { ThemedView, ThemedText, ThemedCard, ThemedButton } from "../../components/ThemedComponents";
 import { useTheme } from "../../wrappers/ThemeProvider";
+import { useTranslation } from 'react-i18next';
 
 export default function NotificationDetails() {
   const navigation = useNotificationsStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <AppLayout scrollable={false}>
        {/* Header */}
-          <GoBackHeader screenTitle='Notification Details' />
+          <GoBackHeader screenTitle={t('notifications.notificationDetails')} />
 
       {/* Notification Header */}
       <ThemedCard className="mx-4 flex-row items-start mb-6">
@@ -27,7 +29,7 @@ export default function NotificationDetails() {
         </ThemedView>
         <ThemedView className="flex-1">
           <ThemedText weight="semibold" className="mb-1">
-            New Parking Ticket Issued
+            {t('notifications.newParkingTicket')}
           </ThemedText>
           <ThemedText size="sm" variant="secondary">May 30, 2025 · 14:30</ThemedText>
         </ThemedView>
@@ -36,11 +38,12 @@ export default function NotificationDetails() {
       {/* Message Content */}
       <ThemedView className="px-4 mb-8">
         <ThemedText className="leading-relaxed">
-          Your plate <ThemedText weight="semibold">ABC1234</ThemedText> received a
-          parking ticket at{" "}
-          <ThemedText weight="medium">123 King St W</ThemedText>. Amount due:{" "}
-          <ThemedText weight="semibold">$78.30</ThemedText>. Pay by{" "}
-          <ThemedText weight="medium">Jun 14, 2025</ThemedText> to avoid late fees.
+          {t('notifications.ticketIssuedMessage', {
+            plate: 'ABC1234',
+            location: '123 King St W',
+            amount: '$78.30',
+            dueDate: 'Jun 14, 2025'
+          })}
         </ThemedText>
       </ThemedView>
 
@@ -52,7 +55,7 @@ export default function NotificationDetails() {
           size="lg"
           className="mb-4"
         >
-          View Ticket Details
+{t('tickets.viewTicketDetails')}
         </ThemedButton>
 
         <TouchableOpacity
@@ -67,7 +70,7 @@ export default function NotificationDetails() {
               color: theme === 'dark' ? '#22C55E' : '#10472B'
             }}
           >
-            Mark as Read
+{t('notifications.markAsRead')}
           </ThemedText>
         </TouchableOpacity>
       </ThemedView>

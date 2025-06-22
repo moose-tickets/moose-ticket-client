@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useSettingsStackNavigation } from '../../navigation/hooks';
 import { useAppDispatch } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
@@ -16,6 +17,7 @@ import { ThemedView, ThemedText, ThemedScrollView } from '../../components/Theme
 export default function SettingsScreen() {
   const navigation = useSettingsStackNavigation();
   const { theme, themeMode } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
   // Toggle states
@@ -34,15 +36,15 @@ export default function SettingsScreen() {
 
   const handleSignOut = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      t('auth.signOut'),
+      t('settings.signOutConfirm'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Sign Out',
+          text: t('auth.signOut'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -52,9 +54,9 @@ export default function SettingsScreen() {
             } catch (error) {
               setIsSigningOut(false);
               Alert.alert(
-                'Error',
-                'There was a problem signing out. Please try again.',
-                [{ text: 'OK' }]
+                t('common.error'),
+                t('settings.signOutError'),
+                [{ text: t('common.ok') }]
               );
             }
           },
@@ -67,23 +69,23 @@ export default function SettingsScreen() {
     <AppLayout>
       <ThemedScrollView className='flex-1  px-6 '>
         {/* Header */}
-        <Header screenTitle='Settings' />
+        <Header screenTitle={t('navigation.settings')} />
         
         {/* Notifications */}
-        <ThemedText variant='primary' weight='semibold' className='mb-2'>Notifications</ThemedText>
+        <ThemedText variant='primary' weight='semibold' className='mb-2'>{t('navigation.notifications')}</ThemedText>
         {[
           {
-            label: 'Ticket Alerts',
+            label: t('notifications.ticketReminders'),
             state: ticketAlerts,
             setter: setTicketAlerts,
           },
           {
-            label: 'Payment Reminders',
+            label: t('notifications.paymentReminders'),
             state: paymentReminders,
             setter: setPaymentReminders,
           },
           {
-            label: 'Dispute Updates',
+            label: t('notifications.disputeUpdates'),
             state: disputeUpdates,
             setter: setDisputeUpdates,
           },
@@ -103,26 +105,26 @@ export default function SettingsScreen() {
         ))}
 
         {/* Account */}
-        <ThemedText variant='primary' weight='semibold' className='mt-6 mb-2'>Account</ThemedText>
+        <ThemedText variant='primary' weight='semibold' className='mt-6 mb-2'>{t('settings.account')}</ThemedText>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('Profile')}
         >
-          <ThemedText variant='primary' size='base'>Profile</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('navigation.profile')}</ThemedText>
           <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
         </TouchableOpacity>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('ManageSubscription')}
         >
-          <ThemedText variant='primary' size='base'>Manage Subscription</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('settings.manageSubscription')}</ThemedText>
           <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
         </TouchableOpacity>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('ChangePassword')}
         >
-          <ThemedText variant='primary' size='base'>Change Password</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('settings.changePassword')}</ThemedText>
           <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
         </TouchableOpacity>
 
@@ -130,17 +132,17 @@ export default function SettingsScreen() {
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('LanguageRegion')}
         >
-          <ThemedText variant='primary' size='base'>Language & Region</ThemedText>
-          <ThemedText variant='secondary' size='sm'>English (Canada)</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('settings.languageAndRegion')}</ThemedText>
+          <ThemedText variant='secondary' size='sm'>{t('settings.currentLanguage')}</ThemedText>
         </TouchableOpacity>
 
         {/* Privacy & Security */}
         <ThemedText variant='primary' weight='semibold' className='mt-6 mb-2'>
-          Privacy & Security
+          {t('settings.privacySecurity')}
         </ThemedText>
         <ThemedView className='flex-row justify-between items-center py-3 border-b border-border'>
           <ThemedText variant='primary' size='base'>
-            Enable Face/Touch ID
+            {t('settings.enableBiometrics')}
           </ThemedText>
           <Switch
             value={faceIdEnabled}
@@ -151,8 +153,8 @@ export default function SettingsScreen() {
                   setFaceIdEnabled(true);
                 } else {
                   setDialogProps({
-                    title: 'Error!',
-                    message: 'Authentication failed or cancelled.',
+                    title: t('common.error'),
+                    message: t('settings.authenticationFailed'),
                     type: 'error',
                   });
                   setDialogVisible(true);
@@ -169,49 +171,49 @@ export default function SettingsScreen() {
 
         {/* Support & Legal */}
         <ThemedText variant='primary' weight='semibold' className='mt-6 mb-2'>
-          Support & Legal
+          {t('settings.supportLegal')}
         </ThemedText>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('HelpSupport')}
         >
-          <ThemedText variant='primary' size='base'>Help Center</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('settings.helpCenter')}</ThemedText>
           <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
         </TouchableOpacity>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('Terms')}
         >
-          <ThemedText variant='primary' size='base'>Terms of Service</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('legal.termsOfService')}</ThemedText>
           <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
         </TouchableOpacity>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => navigation.navigate('Privacy')}
         >
-          <ThemedText variant='primary' size='base'>Privacy Policy</ThemedText>
+          <ThemedText variant='primary' size='base'>{t('legal.privacyPolicy')}</ThemedText>
           <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
         </TouchableOpacity>
 
         {/* Appearance */}
         <Text className='text-text-primary font-semibold mt-6 mb-2'>
-          Appearance
+          {t('settings.appearance')}
         </Text>
         <TouchableOpacity
           className='flex-row justify-between items-center py-3 border-b border-border'
           onPress={() => setShowThemeSelector(true)}
         >
-          <Text className='text-[15px] text-text-primary'>Theme</Text>
+          <Text className='text-[15px] text-text-primary'>{t('settings.theme')}</Text>
           <View className='flex-row items-center'>
             <Text className='text-text-secondary text-[14px] mr-2'>
-              {themeMode === 'auto' ? 'System' : themeMode === 'light' ? 'Light' : 'Dark'}
+              {themeMode === 'auto' ? t('settings.system') : themeMode === 'light' ? t('settings.lightMode') : t('settings.darkMode')}
             </Text>
             <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#C4C4C4'} />
           </View>
         </TouchableOpacity>
         
         <View className='flex-row justify-between items-center py-3'>
-          <Text className='text-[15px] text-text-primary'>Quick Toggle</Text>
+          <Text className='text-[15px] text-text-primary'>{t('settings.quickToggle')}</Text>
           <ThemeToggle showLabel={false} size="md" />
         </View>
 
@@ -224,15 +226,15 @@ export default function SettingsScreen() {
           {isSigningOut ? (
             <View className='flex-row items-center'>
               <ActivityIndicator size="small" color="#EF4444" style={{ marginRight: 8 }} />
-              <ThemedText className='text-red-500 font-medium text-[16px]'>Signing Out...</ThemedText>
+              <ThemedText className='text-red-500 font-medium text-[16px]'>{t('settings.signingOut')}</ThemedText>
             </View>
           ) : (
-            <ThemedText className='text-red-500 font-medium text-[16px]'>Sign Out</ThemedText>
+            <ThemedText className='text-red-500 font-medium text-[16px]'>{t('auth.signOut')}</ThemedText>
           )}
         </TouchableOpacity>
         {/* Version info */}
         <ThemedText variant='tertiary' size='sm' className='text-center mb-10'>
-          Version 1.0.0
+          {t('settings.version')}
         </ThemedText>
       </ThemedScrollView>
       <Dialog

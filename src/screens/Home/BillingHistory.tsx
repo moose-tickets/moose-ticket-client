@@ -12,14 +12,22 @@ import {
   StatusBadge,
 } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchBillingHistory } from '../../store/slices/subscriptionSlice';
 
-const dateRangeOptions = ['All', 'Last 30 Days', 'Last 3 Months'];
+// Move dateRangeOptions inside component to use translations
 
 export default function BillingHistory() {
   const [filter, setFilter] = useState('All');
   const { theme } = useTheme();
+  const { t } = useTranslation();
+  
+  const dateRangeOptions = [
+    { key: 'All', label: t('common.all') },
+    { key: 'Last 30 Days', label: t('billing.last30Days') },
+    { key: 'Last 3 Months', label: t('billing.last3Months') }
+  ];
   const dispatch = useAppDispatch();
 
   // Redux state
@@ -38,9 +46,9 @@ export default function BillingHistory() {
   // Handle errors
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      Alert.alert(t('common.error'), error);
     }
-  }, [error]);
+  }, [error, t]);
 
   const now = new Date();
 
@@ -78,15 +86,15 @@ export default function BillingHistory() {
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'paid':
-        return { status: 'success' as const, label: 'Paid' };
+        return { status: 'success' as const, label: t('billing.paid') };
       case 'pending':
-        return { status: 'warning' as const, label: 'Pending' };
+        return { status: 'warning' as const, label: t('billing.pending') };
       case 'failed':
-        return { status: 'error' as const, label: 'Failed' };
+        return { status: 'error' as const, label: t('billing.failed') };
       case 'refunded':
-        return { status: 'info' as const, label: 'Refunded' };
+        return { status: 'info' as const, label: t('billing.refunded') };
       case 'partially_refunded':
-        return { status: 'warning' as const, label: 'Partial Refund' };
+        return { status: 'warning' as const, label: t('billing.partialRefund') };
       default:
         return { status: 'info' as const, label: status };
     }
@@ -118,7 +126,7 @@ export default function BillingHistory() {
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
         } else {
-          throw new Error('Failed to download invoice');
+          throw new Error(t('billing.downloadInvoiceFailed'));
         }
       } else {
         // For mobile, open in browser
@@ -129,11 +137,11 @@ export default function BillingHistory() {
         if (supported) {
           await Linking.openURL(urlWithAuth);
         } else {
-          Alert.alert('Error', 'Cannot open invoice download link');
+          Alert.alert(t('common.error'), t('billing.cannotOpenInvoiceLink'));
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to download invoice. Please try again.');
+      Alert.alert(t('common.error'), t('billing.downloadInvoiceError'));
     }
   };
 
@@ -141,7 +149,7 @@ export default function BillingHistory() {
     <AppLayout scrollable={false}>
     <ThemedScrollView className="flex-1 px-5">
       {/* Header */}
-      <GoBackHeader screenTitle='Billing History' />
+      <GoBackHeader screenTitle={t('subscription.billingHistory')} />
 
       {/* Filters */}
       <ThemedView className="mb-6">
@@ -149,17 +157,17 @@ export default function BillingHistory() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {dateRangeOptions.map((range) => (
             <ThemedButton
-              key={range}
-              variant={filter === range ? 'primary' : 'outline'}
+              key={range.key}
+              variant={filter === range.key ? 'primary' : 'outline'}
               size='sm'
-              onPress={() => setFilter(range)}
+              onPress={() => setFilter(range.key)}
               className='mr-2 rounded-full'
             >
               <ThemedText
                 size='sm'
-                variant={filter === range ? 'inverse' : 'primary'}
+                variant={filter === range.key ? 'inverse' : 'primary'}
               >
-                {range}
+                {range.label}
               </ThemedText>
             </ThemedButton>
           ))}
@@ -169,7 +177,7 @@ export default function BillingHistory() {
       {/* Loading State */}
       {loading.billing && filteredData.length === 0 && (
         <ThemedView className="flex-1 justify-center items-center">
-          <ThemedText>Loading billing history...</ThemedText>
+          <ThemedText>{t('billing.loadingBillingHistory')}</ThemedText>
         </ThemedView>
       )}
 
@@ -194,20 +202,20 @@ export default function BillingHistory() {
               </ThemedView>
               
               <ThemedView className="flex-row justify-between items-center mb-1">
-                <ThemedText variant='secondary'>Invoice #{item.invoiceNumber}</ThemedText>
+                <ThemedText variant='secondary'>{t('billing.invoiceNumber', { number: item.invoiceNumber })}</ThemedText>
                 <ThemedText size='sm' variant='tertiary'>
-                  {item.type === 'subscription' ? 'Subscription' : 
-                   item.type === 'refund' ? 'Refund' : 'Payment'}
+                  {item.type === 'subscription' ? t('billing.subscription') : 
+                   item.type === 'refund' ? t('billing.refund') : t('billing.payment')}
                 </ThemedText>
               </ThemedView>
               
               <ThemedText variant='secondary' className='mt-1'>
-                Amount: {formatAmount(item.totalAmount, item.currency)}
+                {t('billing.amount')}: {formatAmount(item.totalAmount, item.currency)}
               </ThemedText>
               
               {item.paymentMethod && (
                 <ThemedText variant='secondary'>
-                  Paid with: {item.paymentMethod.brand} •••• {item.paymentMethod.last4}
+                  {t('billing.paidWith')}: {item.paymentMethod.brand} •••• {item.paymentMethod.last4}
                 </ThemedText>
               )}
               
@@ -228,7 +236,7 @@ export default function BillingHistory() {
                       size='sm'
                       style={{ color: theme === 'dark' ? '#3B82F6' : '#2563EB' }}
                     >
-                      Download Invoice
+{t('billing.downloadInvoice')}
                     </ThemedText>
                   </ThemedView>
                 </TouchableOpacity>
@@ -245,12 +253,12 @@ export default function BillingHistory() {
             style={{ marginBottom: 16 }}
           />
           <ThemedText variant='tertiary' size='lg' className="mb-2">
-            No billing records found
+            {t('billing.noBillingRecords')}
           </ThemedText>
           <ThemedText variant='secondary' className="text-center">
             {filter === 'All' 
-              ? 'You don\'t have any billing history yet'
-              : `No records found for ${filter.toLowerCase()}`
+              ? t('billing.noBillingHistoryYet')
+              : t('billing.noRecordsForPeriod', { period: dateRangeOptions.find(opt => opt.key === filter)?.label.toLowerCase() })
             }
           </ThemedText>
         </ThemedView>

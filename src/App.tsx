@@ -200,6 +200,7 @@ import store from "./store";
 import AppNavigator from "./navigation/AppNavigator";
 import { ThemeProvider } from "./wrappers/ThemeProvider";
 import { AppInitializer } from "./components/AppInitializer";
+import { initI18n } from "./locales";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -223,6 +224,10 @@ function AppContent() {
   useEffect(() => {
     async function prepare() {
       try {
+        // Initialize i18n
+        await initI18n();
+        console.log('🌐 Internationalization initialized');
+        
         // Unified security service initializes automatically
         console.log('🛡️ Top-notch security system initialized');
         

@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '../../wrappers/layout';
 import Dialog from '../../components/Dialog';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +27,7 @@ import { createPaymentMethod } from '../../store/slices/paymentSlice';
 export default function AddCard() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
   // Redux state
@@ -49,8 +51,8 @@ export default function AddCard() {
 
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogProps, setDialogProps] = useState({
-    title: "Missing Information",
-    message: "Please fill in all required fields.",
+    title: t('payments.missingInformation'),
+    message: t('payments.fillRequiredFields'),
     type: "warning" as "success" | "error" | "info" | "warning",
   });
 
@@ -58,8 +60,8 @@ export default function AddCard() {
   const { checkBot, isHuman, riskLevel } = useBotCheck({
     onBotDetected: (context) => {
       setDialogProps({
-        title: "Security Check Failed",
-        message: "Suspicious activity detected. Please try again later.",
+        title: t('payments.securityCheckFailed'),
+        message: t('payments.suspiciousActivity'),
         type: "error",
       });
       setDialogVisible(true);
@@ -71,7 +73,7 @@ export default function AddCard() {
     const errors: Record<string, string[]> = {};
 
     // Validate cardholder name
-    const nameResult = validateRequired(cardName, 'Cardholder name');
+    const nameResult = validateRequired(cardName, t('payments.cardholderName'));
     if (!nameResult.isValid) {
       errors.cardName = nameResult.errors;
     }
@@ -90,21 +92,21 @@ export default function AddCard() {
 
     // Validate expiry (basic validation)
     if (!expiry || expiry.length < 5) {
-      errors.expiry = ['Please enter a valid expiry date (MM/YY)'];
+      errors.expiry = [t('payments.validExpiryDate')];
     }
 
     // Validate billing address
     if (!billingAddress.fullName) {
-      errors.billingFullName = ['Full name is required'];
+      errors.billingFullName = [t('payments.fullNameRequired')];
     }
     if (!billingAddress.address) {
-      errors.billingAddress = ['Address is required'];
+      errors.billingAddress = [t('payments.addressRequired')];
     }
     if (!billingAddress.city) {
-      errors.billingCity = ['City is required'];
+      errors.billingCity = [t('payments.cityRequired')];
     }
     if (!billingAddress.postalCode) {
-      errors.billingPostalCode = ['Postal code is required'];
+      errors.billingPostalCode = [t('payments.postalCodeRequired')];
     }
 
     setValidationErrors(errors);
@@ -121,8 +123,8 @@ export default function AddCard() {
       const isFormValid = validateForm();
       if (!isFormValid) {
         setDialogProps({
-          title: "Validation Error",
-          message: "Please correct the errors below and try again.",
+          title: t('auth.validationFailed'),
+          message: t('payments.correctErrors'),
           type: "error",
         });
         setDialogVisible(true);
@@ -168,8 +170,8 @@ export default function AddCard() {
 
       // Success
       setDialogProps({
-        title: "Card Added Successfully",
-        message: "Your payment method has been added securely.",
+        title: t('payments.cardAddedSuccess'),
+        message: t('payments.paymentMethodAdded'),
         type: "success",
       });
       setDialogVisible(true);
@@ -184,8 +186,8 @@ export default function AddCard() {
       console.error('Add card error:', error);
       
       setDialogProps({
-        title: "Payment Error",
-        message: error.message || "Failed to add payment method. Please try again.",
+        title: t('payments.paymentError'),
+        message: error.message || t('payments.addPaymentMethodFailed'),
         type: "error",
       });
       setDialogVisible(true);
@@ -203,23 +205,23 @@ export default function AddCard() {
           keyboardShouldPersistTaps='handled'
         >
           {/* Header */}
-          <GoBackHeader screenTitle='Add Card' />
+          <GoBackHeader screenTitle={t('payments.addCard')} />
 
           {/* Inputs */}
           <ThemedView className='px-4'>
-            <ThemedText size='sm' variant='secondary' className='mb-2'>Cardholder Name</ThemedText>
+            <ThemedText size='sm' variant='secondary' className='mb-2'>{t('payments.cardholderName')}</ThemedText>
             <ThemedInput
-              placeholder='John Doe'
+              placeholder={t('payments.cardholderNamePlaceholder')}
               value={cardName}
               onChangeText={setCardName}
               className='mb-4'
             />
 
-            <ThemedText size='sm' variant='secondary' className='mb-2'>Card Number</ThemedText>
+            <ThemedText size='sm' variant='secondary' className='mb-2'>{t('payments.cardNumber')}</ThemedText>
             <ThemedInput
               keyboardType='number-pad'
               maxLength={19}
-              placeholder='1234 5678 9012 3456'
+              placeholder={t('payments.cardNumberPlaceholder')}
               value={cardNumber}
               onChangeText={setCardNumber}
               className='mb-4'
@@ -227,9 +229,9 @@ export default function AddCard() {
 
             <ThemedView className='flex-row space-x-4'>
               <ThemedView className='flex-1'>
-                <ThemedText size='sm' variant='secondary' className='mb-2'>Expiry</ThemedText>
+                <ThemedText size='sm' variant='secondary' className='mb-2'>{t('payments.expiryDate')}</ThemedText>
                 <ThemedInput
-                  placeholder='MM/YY'
+                  placeholder={t('payments.expiryPlaceholder')}
                   maxLength={5}
                   keyboardType='numeric'
                   value={expiry}
@@ -239,9 +241,9 @@ export default function AddCard() {
               </ThemedView>
 
               <ThemedView className='flex-1'>
-                <ThemedText size='sm' variant='secondary' className='mb-2'>CVV</ThemedText>
+                <ThemedText size='sm' variant='secondary' className='mb-2'>{t('payments.cvv')}</ThemedText>
                 <ThemedInput
-                  placeholder='123'
+                  placeholder={t('payments.cvvPlaceholder')}
                   secureTextEntry
                   maxLength={4}
                   keyboardType='number-pad'
@@ -253,7 +255,7 @@ export default function AddCard() {
             </ThemedView>
 
             <ThemedText size='sm' variant='secondary' className='mb-2'>
-              Billing Address (Optional)
+              {t('payments.billingAddressOptional')}
             </ThemedText>
             {/* 
             <TextInput
@@ -264,7 +266,7 @@ export default function AddCard() {
             /> */}
             <ThemedView className='mt-4'>
               <ThemedText size='sm' variant='secondary' className='mb-2'>
-                Billing Address
+                {t('payments.billingAddress')}
               </ThemedText>
               <AddressForm
                 onSubmit={(address) => {
@@ -276,7 +278,7 @@ export default function AddCard() {
             {/* Save toggle */}
             <ThemedView className='flex-row items-center justify-between mb-6'>
               <ThemedText weight='medium'>
-                Save this card for future payments
+                {t('payments.saveCardForFuture')}
               </ThemedText>
               <Switch
                 value={saveCard}
@@ -299,7 +301,7 @@ export default function AddCard() {
               className='mb-3'
               disabled={loading.create}
             >
-              {loading.create ? 'Adding Card...' : 'Add Card'}
+              {loading.create ? t('payments.addingCard') : t('payments.addCard')}
             </ThemedButton>
 
             <ThemedButton
@@ -307,7 +309,7 @@ export default function AddCard() {
               variant='outline'
               size='lg'
             >
-              Cancel
+              {t('common.cancel')}
             </ThemedButton>
           </ThemedView>
         </ScrollView>
@@ -316,15 +318,15 @@ export default function AddCard() {
       {/* Dialog */}
       <Dialog
         visible={dialogVisible}
-        title='Card Added'
-        message='Your card has been saved successfully.'
-        type='success'
+        title={dialogProps.title}
+        message={dialogProps.message}
+        type={dialogProps.type}
         onClose={() => setDialogVisible(false)}
         onConfirm={() => {
           setDialogVisible(false);
           navigation.goBack();
         }}
-        confirmText='OK'
+        confirmText={t('common.ok')}
       />
     </AppLayout>
   );

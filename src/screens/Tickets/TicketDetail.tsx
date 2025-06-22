@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useTicketStackNavigation } from '../../navigation/hooks';
 import { TicketStackParamList } from '../../navigation/types';
@@ -11,6 +12,9 @@ import AppLayout from '../../wrappers/layout';
 
 import MapWebView from '../../components/MapWebView';
 import GoBackHeader from '../../components/GoBackHeader';
+import MetadataDisplay from '../../components/MetadataDisplay';
+import AutoTranslatedText from '../../components/AutoTranslatedText';
+import useAutoTranslate from '../../utils/autoTranslate';
 import {
   ThemedView,
   ThemedText,
@@ -31,6 +35,43 @@ import ImageViewer from '../../components/ImageViewer';
 export default function TicketDetail() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
+  const { t, i18n } = useTranslation();
+  const { translateStatus } = useAutoTranslate();
+  const currentLanguage = i18n.language as 'en' | 'fr' | 'ar' | 'es';
+  
+  // Helper function to get localized infraction type text
+  const getLocalizedInfractionType = (infractionType: any) => {
+    if (!infractionType) return t('tickets.trafficViolation');
+    
+    // Handle new multilingual structure
+    if (infractionType.type && typeof infractionType.type === 'object') {
+      return infractionType.type[currentLanguage] || infractionType.type.en || t('tickets.trafficViolation');
+    }
+    
+    // Handle old string structure (backwards compatibility)
+    if (typeof infractionType.type === 'string') {
+      return infractionType.type;
+    }
+    
+    return t('tickets.trafficViolation');
+  };
+  
+  // Helper function to get localized infraction description
+  const getLocalizedInfractionDescription = (infractionType: any) => {
+    if (!infractionType) return t('tickets.noDescriptionAvailable');
+    
+    // Handle new multilingual structure
+    if (infractionType.violation && typeof infractionType.violation === 'object') {
+      return infractionType.violation[currentLanguage] || infractionType.violation.en || t('tickets.noDescriptionAvailable');
+    }
+    
+    // Handle old string structure (backwards compatibility)
+    if (typeof infractionType.description === 'string') {
+      return infractionType.description;
+    }
+    
+    return t('tickets.noDescriptionAvailable');
+  };
   const route = useRoute<RouteProp<TicketStackParamList, 'TicketDetail'>>();
   const ticketId = route.params.ticketId;
   const dispatch = useAppDispatch();
@@ -76,8 +117,8 @@ export default function TicketDetail() {
 
   // Function to format metadata values
   const formatMetadataValue = (value: any): string => {
-    if (value === null || value === undefined) return 'N/A';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (value === null || value === undefined) return t('common.notAvailable');
+    if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no');
     if (typeof value === 'number') return value.toString();
     if (typeof value === 'string') return value;
     if (typeof value === 'object') return JSON.stringify(value);
@@ -123,11 +164,15 @@ export default function TicketDetail() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    return translateStatus(status);
+  };
+
   return (
     <AppLayout scrollable={false}>
       {isLoading ? (
         <ThemedView className='flex-1 items-center justify-center'>
-          <ThemedText variant='secondary'>Loading ticket details...</ThemedText>
+          <ThemedText variant='secondary'>{t('tickets.loadingTicketDetails')}</ThemedText>
         </ThemedView>
       ) : error ? (
         <ThemedView className='flex-1 items-center justify-center'>
@@ -135,7 +180,7 @@ export default function TicketDetail() {
         </ThemedView>
       ) : !ticket ? (
         <ThemedView className='flex-1 items-center justify-center'>
-          <ThemedText variant='secondary'>Ticket not found</ThemedText>
+          <ThemedText variant='secondary'>{t('tickets.ticketNotFound')}</ThemedText>
         </ThemedView>
       ) : (
         <ThemedScrollView
@@ -143,7 +188,7 @@ export default function TicketDetail() {
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
-          <GoBackHeader screenTitle='Ticket Details' />
+          <GoBackHeader screenTitle={t('tickets.ticketDetails')} />
 
           {/* Ticket Summary */}
           <ThemedCard className='mx-4 mb-4'>
@@ -159,27 +204,27 @@ export default function TicketDetail() {
                   style={{ marginRight: 8 }}
                 />
                 <ThemedText>
-                  {ticket.infractionType?.type || 'Traffic Violation'}
+                  {getLocalizedInfractionType(ticket.infractionType)}
                 </ThemedText>
               </ThemedView>
               <StatusBadge
                 status={getStatusBadgeType(ticket.status)}
-                label={ticket.status}
+                label={getStatusLabel(ticket.status)}
               />
             </ThemedView>
 
             {/* Plate & Ticket # */}
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>
-                Plate:
+                {t('vehicles.plateNumber')}:
               </ThemedText>
               <ThemedText weight='semibold'>
-                {ticket.vehicle?.licensePlate || 'N/A'}
+                {ticket.vehicle?.licensePlate || t('common.notAvailable')}
               </ThemedText>
             </ThemedView>
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>
-                Ticket #:
+                {t('tickets.ticketNumber')}:
               </ThemedText>
               <ThemedText weight='semibold'>
                 {ticket.ticketNumber || ticket._id}
@@ -189,16 +234,16 @@ export default function TicketDetail() {
             {/* Issued By, Date & Location */}
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>
-                Issued by:
+                {t('tickets.issuedBy')}:
               </ThemedText>
               <ThemedText weight='semibold'>
-                {ticket.metadata?.issuingAuthority || 'Municipal Authority'}
+                {ticket.metadata?.issuingAuthority || t('tickets.municipalAuthority')}
               </ThemedText>
             </ThemedView>
             <ThemedView className=' flex-row mb-3 justify-between'>
               <ThemedView className='mb-3'>
                 <ThemedText variant='secondary' size='sm'>
-                  Ticket Violation Date:
+                  {t('tickets.violationDate')}:
                 </ThemedText>
                 <ThemedText weight='semibold'>
                   {new Date(
@@ -214,7 +259,7 @@ export default function TicketDetail() {
               </ThemedView>
               <ThemedView className='mb-3'>
                 <ThemedText variant='secondary' size='sm' className='text-right'>
-                  Ticket Due Date:
+                  {t('tickets.dueDate')}:
                 </ThemedText>
                 <ThemedText weight='semibold'>
                   {new Date(
@@ -231,7 +276,7 @@ export default function TicketDetail() {
               </ThemedView>
             <ThemedView className='mb-3'>
               <ThemedText variant='secondary' size='sm'>
-                Location:
+                {t('tickets.location')}:
               </ThemedText>
               <ThemedText weight='semibold'>
                 {ticket.location?.address?.street1} {' '}
@@ -263,7 +308,7 @@ export default function TicketDetail() {
           {ticket.evidence?.photos && ticket.evidence.photos.length > 0 && (
             <ThemedCard className='mx-4 mb-4'>
               <ThemedText size='base' weight='semibold' className='mb-3'>
-                Evidence Images
+                {t('tickets.evidenceImages')}
               </ThemedText>
               <ThemedView className='flex-row flex-wrap justify-between'>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -304,53 +349,38 @@ export default function TicketDetail() {
           {/* Metadata */}
           {ticket.metadata && Object.keys(ticket.metadata).length > 0 && (
             <ThemedCard className='mx-4 mb-4'>
-              <ThemedText size='base' weight='semibold' className='mb-3'>
-                Ticket Metadata
-              </ThemedText>
-              {Object.entries(ticket.metadata).map(([key, value]) => {
-                // Skip if value is null, undefined, or empty string
-                if (value === null || value === undefined || value === '') {
-                  return null;
-                }
-                
-                return (
-                  <ThemedView key={key} className='flex-row justify-between mb-2 py-1'>
-                    <ThemedText variant='secondary' className='flex-1 mr-4'>
-                      {formatMetadataKey(key)}:
-                    </ThemedText>
-                    <ThemedText weight='medium' className='flex-1 text-right'>
-                      {formatMetadataValue(value)}
-                    </ThemedText>
-                  </ThemedView>
-                );
-              })}
+              <MetadataDisplay
+                title={t('tickets.ticketMetadata')}
+                data={ticket.metadata}
+                excludeFields={['id', '_id', '__v']}
+              />
             </ThemedCard>
           )}
 
           {/* Fine Breakdown */}
           <ThemedCard className='mx-4 mb-4'>
             <ThemedText size='base' weight='semibold' className='mb-3'>
-              Fine Breakdown
+              {t('tickets.fineBreakdown')}
             </ThemedText>
             <ThemedView className='flex-row justify-between mb-2'>
-              <ThemedText variant='secondary'>Base Fine:</ThemedText>
+              <ThemedText variant='secondary'>{t('tickets.baseFine')}:</ThemedText>
               <ThemedText>
                 ${paymentCalculations.baseFine.toFixed(2)}
               </ThemedText>
             </ThemedView>
             <ThemedView className='flex-row justify-between mb-2'>
-              <ThemedText variant='secondary'>Admin Fee:</ThemedText>
+              <ThemedText variant='secondary'>{t('tickets.adminFee')}:</ThemedText>
               <ThemedText>
                 ${paymentCalculations.adminFee.toFixed(2)}
               </ThemedText>
             </ThemedView>
             <ThemedView className='flex-row justify-between mb-3'>
-              <ThemedText variant='secondary'>HST 13%:</ThemedText>
+              <ThemedText variant='secondary'>{t('tickets.hst')}:</ThemedText>
               <ThemedText>${paymentCalculations.hst}</ThemedText>
             </ThemedView>
             <ThemedView className='border-t border-border my-2' />
             <ThemedView className='flex-row justify-between mt-2'>
-              <ThemedText weight='bold'>Total:</ThemedText>
+              <ThemedText weight='bold'>{t('payments.totalAmount')}:</ThemedText>
               <ThemedText weight='bold'>
                 ${paymentCalculations.total.toFixed(2)}
               </ThemedText>
@@ -372,7 +402,7 @@ export default function TicketDetail() {
               }
               className='mb-3'
             >
-              Pay Now
+              {t('payments.payNow')}
             </ThemedButton>
 
             <ThemedButton
@@ -393,8 +423,8 @@ export default function TicketDetail() {
               className='mb-3'
             >
               {ticket.status.toLowerCase() !== 'disputed'
-                ? 'Dispute Ticket'
-                : 'Check Dispute Status'}
+                ? t('tickets.disputeTicket')
+                : t('tickets.checkDisputeStatus')}
             </ThemedButton>
           </ThemedView>
 
@@ -406,7 +436,7 @@ export default function TicketDetail() {
               className='flex-row justify-between items-center py-4 border-b border-border'
             >
               <ThemedText size='base' weight='medium'>
-                Violation Description
+                {t('tickets.violationDescription')}
               </ThemedText>
               <Ionicons
                 name={
@@ -423,9 +453,9 @@ export default function TicketDetail() {
                   size='sm'
                   className='leading-relaxed'
                 >
-                  {ticket.infractionType?.description ||
+                  {getLocalizedInfractionDescription(ticket.infractionType) ||
                     ticket.description ||
-                    'No description available'}
+                    t('tickets.noDescriptionAvailable')}
                 </ThemedText>
               </ThemedView>
             )}
@@ -436,7 +466,7 @@ export default function TicketDetail() {
               className='flex-row justify-between items-center py-4 border-b border-border mt-2'
             >
               <ThemedText size='base' weight='medium'>
-                Payment History
+                {t('payments.paymentHistory')}
               </ThemedText>
               <Ionicons
                 name={openSection === 'history' ? 'chevron-up' : 'chevron-down'}
@@ -459,7 +489,7 @@ export default function TicketDetail() {
                   ))
                 ) : (
                   <ThemedText variant='secondary' size='sm'>
-                    No payments yet.
+                    {t('tickets.noPaymentsYet')}
                   </ThemedText>
                 )}
               </ThemedView>
@@ -471,7 +501,7 @@ export default function TicketDetail() {
               className='flex-row justify-between items-center py-4 border-b border-border mt-2'
             >
               <ThemedText size='base' weight='medium'>
-                Notes
+                {t('tickets.notes')}
               </ThemedText>
               <Ionicons
                 name={openSection === 'note' ? 'chevron-up' : 'chevron-down'}
@@ -482,7 +512,7 @@ export default function TicketDetail() {
             {openSection === 'note' && (
               <ThemedView className='py-3'>
                 <ThemedText variant='secondary' size='sm'>
-                  {ticket.evidence?.officerNotes || 'No notes available'}
+                  {ticket.evidence?.officerNotes || t('tickets.noNotesAvailable')}
                 </ThemedText>
               </ThemedView>
             )}

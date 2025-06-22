@@ -3,6 +3,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { 
   HomeStackParamList, 
   TicketStackParamList, 
@@ -145,6 +146,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainNavigator() {
   const { theme, forceStatusBarUpdate } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Tab.Navigator
@@ -185,6 +187,7 @@ export default function MainNavigator() {
       <Tab.Screen
         name='Home'
         component={HomeStackNavigator}
+        options={{ title: t('navigation.dashboard') }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             // Prevent default tab behavior
@@ -216,6 +219,7 @@ export default function MainNavigator() {
       <Tab.Screen
         name='Tickets'
         component={TicketsStackNavigator}
+        options={{ title: t('navigation.tickets') }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             // Prevent default tab behavior
@@ -246,6 +250,7 @@ export default function MainNavigator() {
       <Tab.Screen
         name='Notifications'
         component={NotificationsStackNavigator}
+        options={{ title: t('navigation.notifications') }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             // Prevent default tab behavior
@@ -276,6 +281,7 @@ export default function MainNavigator() {
       <Tab.Screen
         name='Settings'
         component={SettingsStackNavigator}
+        options={{ title: t('navigation.settings') }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             // Prevent default tab behavior

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuthStackNavigation } from '../../navigation/hooks';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import useStatusBarFix from '../../hooks/useStatusBarFix';
@@ -22,6 +23,7 @@ import { loginUser, clearError } from '../../store/slices/authSlice';
 export default function SignIn() {
   const navigation = useAuthStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   
   // Redux state
@@ -43,8 +45,8 @@ export default function SignIn() {
   const { checkBot, isHuman, riskLevel } = useBotCheck({
     onBotDetected: (context) => {
       setDialogProps({
-        title: "Security Check Failed",
-        message: "Suspicious activity detected. Please try again later.",
+        title: t('errors.permissionDenied'),
+        message: t('errors.somethingWentWrong'),
         type: "error",
       });
       setDialogVisible(true);
@@ -76,8 +78,8 @@ export default function SignIn() {
   useEffect(() => {
     if (isAuthenticated) {
       setDialogProps({
-        title: "Success",
-        message: "Welcome back! Redirecting to dashboard...",
+        title: t('common.success'),
+        message: t('auth.signInSuccess'),
         type: "success",
       });
       setDialogVisible(true);
@@ -94,7 +96,7 @@ export default function SignIn() {
   useEffect(() => {
     if (error) {
       setDialogProps({
-        title: "Sign In Failed",
+        title: t('auth.signInFailed'),
         message: error,
         type: "error",
       });
@@ -137,8 +139,8 @@ export default function SignIn() {
       console.error('Sign in error:', error);
       
       setDialogProps({
-        title: "Sign In Failed",
-        message: error.message || "An error occurred during sign in. Please try again.",
+        title: t('auth.signInFailed'),
+        message: error.message || t('errors.somethingWentWrong'),
         type: "error",
       });
       setDialogVisible(true);
@@ -175,12 +177,12 @@ export default function SignIn() {
           weight="bold" 
           className="text-center mb-6"
         >
-          Sign In
+          {t('auth.signIn')}
         </ThemedText>
 
         <InputField
-          label="Email"
-          placeholder="e.g., user@example.com"
+          label={t('auth.email')}
+          placeholder={t('auth.emailPlaceholder')}
           value={email}
           onChangeText={(text) => {
             setEmail(sanitizeEmail(text));
@@ -197,8 +199,8 @@ export default function SignIn() {
         />
 
         <InputField
-          label="Password"
-          placeholder="Password"
+          label={t('auth.password')}
+          placeholder={t('auth.password')}
           value={password}
           onChangeText={(text) => {
             setPassword(text);
@@ -217,7 +219,7 @@ export default function SignIn() {
         <ThemedView className="w-full items-end mb-6">
           <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
             <ThemedText variant="primary" size="sm" className="text-secondary">
-              Forgot Password?
+              {t('auth.forgotPassword')}
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>
@@ -226,7 +228,7 @@ export default function SignIn() {
         {!isHuman && riskLevel !== 'low' && (
           <ThemedView className="mb-4 p-3 bg-warning-light rounded-xl">
             <ThemedText variant="warning" size="xs" className="text-center">
-              Security verification in progress...
+              {t('auth.securityVerification')}
             </ThemedText>
           </ThemedView>
         )}
@@ -241,10 +243,10 @@ export default function SignIn() {
           disabled={isLoading || (!isHuman && riskLevel === 'critical')}
           className="mb-6"
         >
-          {isLoading ? 'Signing In...' : 'Sign In'}
+          {isLoading ? t('auth.signingIn') : t('auth.signIn')}
         </ThemedButton>
 
-        <Passport text='Or sign in with' />
+        <Passport text={t('auth.orSignInWith')} />
 
         {/* Footer */}
         <ThemedText 
@@ -252,22 +254,22 @@ export default function SignIn() {
           size="xs" 
           className="text-center mb-3"
         >
-          By signing in, you agree to our{' '}
+          {t('auth.agreeToTerms')}{' '}
           <ThemedText variant="primary" size="xs" className="text-secondary underline">
-            Terms of Service
+            {t('legal.termsOfService')}
           </ThemedText>
-          {' '}and{' '}
+          {' '}{t('common.and')}{' '}
           <ThemedText variant="primary" size="xs" className="text-secondary underline">
-            Privacy Policy
+            {t('legal.privacyPolicy')}
           </ThemedText>
           .
         </ThemedText>
 
         <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
           <ThemedText variant="primary" size="sm" className="text-center">
-            Don't have an account?{' '}
+            {t('auth.dontHaveAccount')}{' '}
             <ThemedText variant="primary" size="sm" weight="semibold" className="text-secondary">
-              Sign Up
+              {t('auth.signUp')}
             </ThemedText>
           </ThemedText>
         </TouchableOpacity>

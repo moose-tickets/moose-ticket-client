@@ -8,6 +8,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSettingsStackNavigation } from "../../navigation/hooks";
 import { useTheme } from "../../wrappers/ThemeProvider";
+import { useTranslation } from 'react-i18next';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput } from "../../components/ThemedComponents";
 import AppLayout from "../../wrappers/layout";
 import Header from "../../components/Header";
@@ -16,6 +17,7 @@ import GoBackHeader from "../../components/GoBackHeader";
 export default function ChangePassword() {
   const navigation = useSettingsStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   const [current, setCurrent] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -26,15 +28,15 @@ export default function ChangePassword() {
 
   const handleSave = () => {
     if (!current || !newPassword || !confirm) {
-      return Alert.alert("Error", "Please fill in all fields.");
+      return Alert.alert(t('common.error'), t('profile.fillRequiredFields'));
     }
     if (newPassword.length < 8) {
-      return Alert.alert("Error", "Password must be at least 8 characters.");
+      return Alert.alert(t('common.error'), t('validation.passwordTooShort'));
     }
     if (newPassword !== confirm) {
-      return Alert.alert("Error", "Passwords do not match.");
+      return Alert.alert(t('common.error'), t('validation.passwordsDoNotMatch'));
     }
-    Alert.alert("Success", "Password updated.");
+    Alert.alert(t('common.success'), t('settings.passwordUpdated'));
   };
 
   const PasswordInput = ({
@@ -72,14 +74,14 @@ export default function ChangePassword() {
 
   return (
     <AppLayout>
-      <GoBackHeader screenTitle="Change Password" />
+      <GoBackHeader screenTitle={t('settings.changePassword')} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className='flex-1 justify-center px-6 '
       >
 
         <PasswordInput
-          label="Current Password"
+          label={t('settings.currentPassword')}
           value={current}
           onChangeText={setCurrent}
           secure
@@ -88,7 +90,7 @@ export default function ChangePassword() {
         />
 
         <PasswordInput
-          label="New Password"
+          label={t('settings.newPassword')}
           value={newPassword}
           onChangeText={setNewPassword}
           secure
@@ -97,11 +99,11 @@ export default function ChangePassword() {
         />
 
         <ThemedText variant="tertiary" size="xs" className="mb-2">
-          Must be at least 8 characters.
+          {t('settings.passwordRequirement')}
         </ThemedText>
 
         <PasswordInput
-          label="Confirm New Password"
+          label={t('auth.confirmPassword')}
           value={confirm}
           onChangeText={setConfirm}
           secure
@@ -115,12 +117,12 @@ export default function ChangePassword() {
           onPress={handleSave}
           className="mt-2 mb-6"
         >
-          Save Changes
+          {t('settings.saveChanges')}
         </ThemedButton>
 
         <TouchableOpacity onPress={() => navigation.navigate('SettingsHome')}>
           <ThemedText variant="primary" size="sm" weight="medium" className="text-center text-secondary underline">
-            Cancel
+            {t('common.cancel')}
           </ThemedText>
         </TouchableOpacity>
       </KeyboardAvoidingView>

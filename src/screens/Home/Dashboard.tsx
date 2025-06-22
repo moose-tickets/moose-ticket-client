@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '../../wrappers/layout';
 import { useHomeStackNavigation } from '../../navigation/hooks';
 import {
@@ -52,6 +53,7 @@ import {
 export default function HomeScreen() {
   const navigation = useHomeStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
   // Redux state selectors with safe defaults
@@ -79,10 +81,10 @@ export default function HomeScreen() {
   // Get greeting based on time of day
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }, []);
+    if (hour < 12) return t('dashboard.goodMorning');
+    if (hour < 17) return t('dashboard.goodAfternoon');
+    return t('dashboard.goodEvening');
+  }, [t]);
 
   // Get next due ticket
   const nextDueTicket = useMemo(() => {
@@ -99,11 +101,11 @@ export default function HomeScreen() {
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     
     if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m left`;
+      return t('dashboard.timeLeft', { hours: diffHours, minutes: diffMinutes });
     } else if (diffMinutes > 0) {
-      return `${diffMinutes}m left`;
+      return t('dashboard.minutesLeft', { minutes: diffMinutes });
     } else {
-      return 'Overdue';
+      return t('dashboard.overdue');
     }
   };
 
@@ -117,17 +119,17 @@ export default function HomeScreen() {
       const shouldRefresh = !lastRefresh || (now - lastRefresh > fiveMinutes);
       
       if (shouldRefresh) {
-        dispatch(fetchDashboardStats(timeRange));
+        // dispatch(fetchDashboardStats(timeRange));
         // dispatch(fetchRecentTickets());
         // dispatch(fetchUpcomingDueDates());
         // dispatch(fetchRecentActivity());
-        dispatch(fetchUnreadCount());
+        // dispatch(fetchUnreadCount());
         
         // Only fetch vehicles if we don't have any or they're very stale (30 minutes)
         const thirtyMinutes = 30 * 60 * 1000;
         const shouldRefreshVehicles = vehicles.length === 0 || !lastRefresh || (now - lastRefresh > thirtyMinutes);
         if (shouldRefreshVehicles) {
-          dispatch(fetchVehicles({ limit: 5 }));
+          // dispatch(fetchVehicles({ limit: 5 }));
         }
       }
     };
@@ -190,10 +192,10 @@ export default function HomeScreen() {
           <ThemedView className='flex-row justify-between items-start'>
             <ThemedView className='flex-1'>
               <ThemedText size='2xl' weight='bold' variant='primary'>
-                {greeting}, {user?.firstName || 'User'}
+                {greeting}, {user?.firstName || t('dashboard.user')}
               </ThemedText>
               <ThemedText variant='secondary' className='mt-1'>
-                {dashboardStats ? `${dashboardStats.outstandingTickets} outstanding tickets` : 'Your parking status at a glance'}
+                {dashboardStats ? t('dashboard.outstandingTickets', { count: dashboardStats.outstandingTickets }) : t('dashboard.statusGlance')}
               </ThemedText>
               <ThemedText variant='tertiary' size='sm'>
                 {formattedDate}
@@ -206,7 +208,7 @@ export default function HomeScreen() {
         {nextDueTicket ? (
           <ThemedCard className='mb-4'>
             <ThemedText size='sm' weight='semibold' className='mb-1 text-primary'>
-              {nextDueTicket.daysDue <= 0 ? 'Overdue Ticket' : 'Next Due Ticket'}
+              {nextDueTicket.daysDue <= 0 ? t('dashboard.overdueTicket') : t('dashboard.nextDueTicket')}
             </ThemedText>
             <ThemedText
               size='lg'
@@ -214,14 +216,14 @@ export default function HomeScreen() {
               variant='primary'
               className='mb-1'
             >
-              Ticket #{nextDueTicket.ticketNumber}
+              {t('dashboard.ticketNumber', { number: nextDueTicket.ticketNumber })}
             </ThemedText>
             <ThemedText 
               weight='semibold' 
               size='lg' 
               className={`mb-2 ${nextDueTicket.daysDue <= 0 ? 'text-danger' : nextDueTicket.daysDue <= 3 ? 'text-warning' : 'text-success'}`}
             >
-              {nextDueTicket.daysDue <= 0 ? 'Overdue' : `${nextDueTicket.daysDue} days left`}
+              {nextDueTicket.daysDue <= 0 ? t('dashboard.overdue') : t('dashboard.daysLeft', { count: nextDueTicket.daysDue })}
             </ThemedText>
             <ThemedText variant='secondary' size='sm' className='mb-2'>
               {nextDueTicket.vehicle.make} {nextDueTicket.vehicle.model} • {nextDueTicket.vehicle.licensePlate}
@@ -250,10 +252,10 @@ export default function HomeScreen() {
                 color={theme === 'dark' ? '#4ADE80' : '#16A34A'}
               />
               <ThemedText size='lg' weight='bold' variant='primary' className='mt-2'>
-                All Clear!
+                {t('dashboard.allClear')}
               </ThemedText>
               <ThemedText variant='secondary' size='sm' className='text-center mt-1'>
-                You have no outstanding tickets
+                {t('dashboard.noOutstandingTickets')}
               </ThemedText>
             </ThemedView>
           </ThemedCard>
@@ -261,7 +263,7 @@ export default function HomeScreen() {
           <ThemedCard className='mb-4'>
             <ThemedView className='items-center py-4'>
               <ThemedText variant='secondary' size='sm'>
-                Loading ticket information...
+                {t('common.loading')}
               </ThemedText>
             </ThemedView>
           </ThemedCard>
@@ -270,11 +272,11 @@ export default function HomeScreen() {
         {/* Action Buttons */}
         <ThemedView className='flex-row justify-between mb-6'>
           {[
-            { icon: 'time-outline', label: 'Extend\nTime', route: '' },
-            { icon: 'add', label: 'New\nTicket', route: 'AddTicket' },
+            { icon: 'time-outline', label: t('dashboard.extendTime'), route: '' },
+            { icon: 'add', label: t('dashboard.newTicket'), route: 'AddTicket' },
             {
               icon: 'calendar-outline',
-              label: 'Billing History',
+              label: t('dashboard.billingHistory'),
               route: 'BillingHistory',
             },
           ].map(({ icon, label, route }, i) => (
@@ -305,7 +307,7 @@ export default function HomeScreen() {
 
         {/* Recent Activity */}
         <ThemedText weight='bold' size='lg' className='mb-2'>
-          Recent Activity
+          {t('dashboard.recentActivity')}
         </ThemedText>
         <ThemedView className='mb-6'>
           {recentActivity && recentActivity.length > 0 ? (
@@ -367,7 +369,7 @@ export default function HomeScreen() {
           ) : (
             <ThemedCard variant='flat' className='bg-background-secondary p-4'>
               <ThemedText variant='secondary' size='sm' className='text-center'>
-                No recent activity
+                {t('dashboard.noRecentActivity')}
               </ThemedText>
             </ThemedCard>
           )}
@@ -375,7 +377,7 @@ export default function HomeScreen() {
 
         {/* Vehicles */}
         <ThemedText weight='bold' size='lg' className='mb-2'>
-          Your Vehicles
+          {t('dashboard.yourVehicles')}
         </ThemedText>
         <FlatList
           data={vehicles}
@@ -427,7 +429,7 @@ export default function HomeScreen() {
                 color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
               />
               <ThemedText variant='secondary' size='sm' className='text-center mt-2'>
-                Add your first vehicle
+                {t('dashboard.addFirstVehicle')}
               </ThemedText>
             </ThemedCard>
           }

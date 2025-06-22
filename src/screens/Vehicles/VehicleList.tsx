@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton, StatusBadge } from '../../components/ThemedComponents';
@@ -19,6 +20,7 @@ import {
 export default function VehicleList() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   
   // Redux state
@@ -34,34 +36,34 @@ export default function VehicleList() {
   // Handle error display
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error, [
-        { text: 'OK', onPress: () => {} }
+      Alert.alert(t('common.error'), error, [
+        { text: t('common.ok'), onPress: () => {} }
       ]);
     }
-  }, [error]);
+  }, [error, t]);
 
   const handleSetDefault = async (vehicleId: string) => {
     try {
       await dispatch(setDefaultVehicle(vehicleId)).unwrap();
     } catch (error) {
-      Alert.alert('Error', 'Failed to set default vehicle');
+      Alert.alert(t('common.error'), t('vehicles.setDefaultError'));
     }
   };
 
   const handleDeleteVehicle = (vehicleId: string) => {
     Alert.alert(
-      'Delete Vehicle',
-      'Are you sure you want to delete this vehicle?',
+      t('vehicles.deleteVehicle'),
+      t('vehicles.deleteVehicleConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: t('common.delete'), 
           style: 'destructive',
           onPress: async () => {
             try {
               await dispatch(deleteVehicle(vehicleId)).unwrap();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete vehicle');
+              Alert.alert(t('common.error'), t('vehicles.deleteVehicleError'));
             }
           }
         }
@@ -84,17 +86,17 @@ export default function VehicleList() {
               {item.year} {item.make} {item.model}
             </ThemedText>
             {item.isDefault && (
-              <StatusBadge status="info" label="Default" size="sm" />
+              <StatusBadge status="info" label={t('vehicles.default')} size="sm" />
             )}
           </ThemedView>
           
           <ThemedView className="ml-8">
             <ThemedView className="flex-row justify-between mb-1">
-              <ThemedText variant="secondary" size="sm">License Plate:</ThemedText>
+              <ThemedText variant="secondary" size="sm">{t('vehicles.licensePlate')}:</ThemedText>
               <ThemedText weight="medium" size="sm">{item.licensePlate}</ThemedText>
             </ThemedView>
             <ThemedView className="flex-row justify-between">
-              <ThemedText variant="secondary" size="sm">Color:</ThemedText>
+              <ThemedText variant="secondary" size="sm">{t('vehicles.color')}:</ThemedText>
               <ThemedText size="sm">{item.color}</ThemedText>
             </ThemedView>
           </ThemedView>
@@ -111,7 +113,7 @@ export default function VehicleList() {
                 weight="medium"
                 style={{ color: theme === 'dark' ? '#3B82F6' : '#2563EB' }}
               >
-                Set Default
+                {t('vehicles.setDefault')}
               </ThemedText>
             </TouchableOpacity>
           )}
@@ -130,7 +132,7 @@ export default function VehicleList() {
   return (
     <AppLayout scrollable={false}>
       {/* Header */}
-      <GoBackHeader screenTitle="My Vehicles" />
+      <GoBackHeader screenTitle={t('vehicles.myVehicles')} />
       
       {/* Empty State or Vehicle List */}
       {vehicles.length === 0 ? (
@@ -142,17 +144,17 @@ export default function VehicleList() {
             style={{ marginBottom: 16 }}
           />
           <ThemedText size="lg" weight="semibold" className="mb-2 text-center">
-            No Vehicles Added
+            {t('vehicles.noVehiclesAdded')}
           </ThemedText>
           <ThemedText variant="secondary" className="text-center mb-6">
-            Add your vehicles to easily manage parking tickets
+            {t('vehicles.addVehiclesDescription')}
           </ThemedText>
           <ThemedButton
             onPress={() => navigation.navigate('AddVehicle')}
             variant="primary"
             size="lg"
           >
-            Add Your First Vehicle
+            {t('vehicles.addFirstVehicle')}
           </ThemedButton>
         </ThemedView>
       ) : (
@@ -175,7 +177,7 @@ export default function VehicleList() {
               variant="secondary"
               size="lg"
             >
-              Add Another Vehicle
+              {t('vehicles.addAnotherVehicle')}
             </ThemedButton>
           </ThemedView>
         </ThemedView>

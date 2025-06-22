@@ -23,6 +23,8 @@ import {
   selectTicketError,
   selectTicketPagination,
 } from '../../store/slices/ticketSlice';
+import { useTranslation } from 'react-i18next';
+import useAutoTranslate from '../../utils/autoTranslate';
 
 const STATUS_MAPPING: Record<string, 'success' | 'error' | 'warning'> = {
   paid: 'success',
@@ -34,7 +36,27 @@ export default function TicketListScreen() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
   const dispatch = useAppDispatch();
+  const { t, i18n } = useTranslation();
+  const { translateStatus } = useAutoTranslate();
+  const currentLanguage = i18n.language as 'en' | 'fr' | 'ar' | 'es';
   
+  // Helper function to get localized infraction type text
+  const getLocalizedInfractionType = (infractionType: any) => {
+    if (!infractionType) return t('tickets.trafficViolation');
+    
+    // Handle new multilingual structure
+    if (infractionType.type && typeof infractionType.type === 'object') {
+      return infractionType.type[currentLanguage] || infractionType.type.en || t('tickets.trafficViolation');
+    }
+    
+    // Handle old string structure (backwards compatibility)
+    if (typeof infractionType.type === 'string') {
+      return infractionType.type;
+    }
+    
+    // Fallback to violationType field or default
+    return infractionType.violationType || t('tickets.trafficViolation');
+  };
   // Redux state
   const tickets = useAppSelector(selectTickets);
   const filters = useAppSelector(selectTicketFilters);
@@ -42,9 +64,26 @@ export default function TicketListScreen() {
   const isLoadingMore = useAppSelector(selectTicketLoadingMore);
   const error = useAppSelector(selectTicketError);
   const pagination = useAppSelector(selectTicketPagination);
-  
+
   // Local state
-  // 'pending' | 'paid' | 'disputed' | 'cancelled' | 'overdue';
+  const tabs = [
+    {
+      label: t('tickets.all'),
+      value:'All' 
+    },
+    {
+      label: t('tickets.paid'),
+      value:'Paid' 
+    },
+    {
+      label: t('tickets.outstanding'),
+      value:'Outstanding' 
+    },
+    {
+      label: t('tickets.disputed'),
+      value:'Disputed' 
+    },
+  ]
   const [tab, setTab] = useState<'All' | 'Paid' | 'Outstanding' | 'Disputed'>('All');
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,7 +135,7 @@ export default function TicketListScreen() {
     return (
       <ThemedView className='py-4 items-center'>
         <ThemedText variant='secondary' size='sm'>
-          Loading more tickets...
+          {t('tickets.loadingMoreTickets')}
         </ThemedText>
       </ThemedView>
     );
@@ -106,21 +145,21 @@ export default function TicketListScreen() {
     <AppLayout scrollable={false}>
       <ThemedView className='flex-1 px-4'>
         {/* Header */}
-        <Header screenTitle='My Tickets' />
+        <Header screenTitle={t('tickets.myTickets')} />
 
         {/* Filter Tabs */}
         <ThemedView className='flex-row justify-between items-center mb-4'>
           <ThemedView className='flex-row'>
-            {['All', 'Outstanding', 'Disputed', 'Paid'].map((label) => (
+            {tabs.map(({label, value}) => (
               <TouchableOpacity
                 key={label}
-                onPress={() => setTab(label as any)}
+                onPress={() => setTab(value as any)}
                 className={`px-4 py-2 mr-2 rounded-full ${
-                  tab === label ? 'bg-primary' : 'bg-background-secondary border border-border'
+                  tab === value ? 'bg-primary' : 'bg-background-secondary border border-border'
                 }`}
               >
                 <ThemedText
-                  variant={tab === label ? 'inverse' : 'secondary'}
+                  variant={tab === value ? 'inverse' : 'secondary'}
                   size='sm'
                 >
                   {label}
@@ -173,7 +212,7 @@ export default function TicketListScreen() {
                 {/* Date, Status */}
                 <ThemedView className='flex-row justify-between items-center mb-2'>
                   <ThemedText variant='secondary' size='sm'>
-                    {new Date(item.issueDate || item.createdAt).toLocaleDateString('en-CA', {
+                    {new Date(item.issueDate || item.createdAt).toLocaleDateString('en', {
                       month: 'long',
                       day: 'numeric',
                       year: 'numeric',
@@ -182,7 +221,7 @@ export default function TicketListScreen() {
                   </ThemedText>
                   <StatusBadge
                     status={STATUS_MAPPING[item.status] ?? 'info'}
-                    label={item.status}
+                    label={translateStatus(item.status)}
                     size='sm'
                   />
                 </ThemedView>
@@ -195,7 +234,7 @@ export default function TicketListScreen() {
                     color={theme === 'dark' ? '#FFA366' : '#E18743'}
                     style={{ marginRight: 8 }}
                   />
-                  <ThemedText>{item.infractionType?.type || item.violationType || 'Traffic Violation'}</ThemedText>
+                  <ThemedText>{getLocalizedInfractionType(item.infractionType)}</ThemedText>
                 </ThemedView>
               </ThemedCard>
             </TouchableOpacity>
@@ -205,7 +244,7 @@ export default function TicketListScreen() {
             <ThemedView className='py-8'>
               {isLoading ? (
                 <ThemedText variant='secondary' className='text-center'>
-                  Loading tickets...
+                  {t('tickets.loadingTickets')}
                 </ThemedText>
               ) : error ? (
                 <ThemedView className='items-center'>
@@ -222,7 +261,7 @@ export default function TicketListScreen() {
                     className='mt-4 px-4 py-2 bg-primary rounded-lg'
                   >
                     <ThemedText variant='inverse' size='sm'>
-                      Try Again
+                      {t('common.retry')}
                     </ThemedText>
                   </TouchableOpacity>
                 </ThemedView>
@@ -234,14 +273,14 @@ export default function TicketListScreen() {
                     color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
                   />
                   <ThemedText variant='secondary' className='text-center mt-2'>
-                    {tab === 'All' ? 'No tickets found.' : `No ${tab.toLowerCase()} tickets found.`}
+                    {tab === 'All' ? t('tickets.noTicketsFound') : t('tickets.noTicketsFoundForStatus', { status: tab.toLowerCase() })}
                   </ThemedText>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('AddTicket')}
                     className='mt-4 px-4 py-2 bg-primary rounded-lg'
                   >
                     <ThemedText variant='inverse' size='sm'>
-                      Add First Ticket
+                      {t('tickets.addFirstTicket')}
                     </ThemedText>
                   </TouchableOpacity>
                 </ThemedView>

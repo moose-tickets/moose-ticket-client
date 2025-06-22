@@ -7,45 +7,49 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useNotificationsStackNavigation } from '../../navigation/hooks';
 import { ThemedView, ThemedText, ThemedCard } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
 
-const notifications = [
-  {
-    id: "1",
-    type: "ticket",
-    title: "New Parking Ticket Issued",
-    time: "May 30, 2025 · 14:30",
-    message: "Your plate ABC1234 received a ticket...",
-    iconColor: "#E18743",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "payment",
-    title: "Payment Successful",
-    time: "May 29, 2025 · 09:15",
-    message: "Payment of $75.00 for ticket #12345...",
-    iconColor: "#34A853",
-    read: true,
-  },
-  {
-    id: "3",
-    type: "dispute",
-    title: "Dispute Status Updated",
-    time: "May 28, 2025 · 16:45",
-    message: "Your dispute for ticket #12346 has b...",
-    iconColor: "#6B7280",
-    read: true,
-  },
-];
+// notifications data moved inside component for translation access
 
 
 export default function NotificationCenter() {
   const navigation = useNotificationsStackNavigation();
   const { theme, presets } = useTheme();
+  const { t } = useTranslation();
   const [tab, setTab] = useState('All');
+  
+  const notifications = [
+    {
+      id: "1",
+      type: "ticket",
+      title: t('notifications.newParkingTicket'),
+      time: "May 30, 2025 · 14:30",
+      message: t('notifications.plateReceivedTicket', { plate: 'ABC1234' }),
+      iconColor: "#E18743",
+      read: false,
+    },
+    {
+      id: "2",
+      type: "payment",
+      title: t('notifications.paymentSuccessful'),
+      time: "May 29, 2025 · 09:15",
+      message: t('notifications.paymentAmount', { amount: '$75.00', ticket: '#12345' }),
+      iconColor: "#34A853",
+      read: true,
+    },
+    {
+      id: "3",
+      type: "dispute",
+      title: t('notifications.disputeStatusUpdated'),
+      time: "May 28, 2025 · 16:45",
+      message: t('notifications.disputeForTicket', { ticket: '#12346' }),
+      iconColor: "#6B7280",
+      read: true,
+    },
+  ];
 
   return (
     <ThemedView className='flex-1 pt-14 px-4'>
@@ -58,28 +62,31 @@ export default function NotificationCenter() {
             color={theme === 'dark' ? '#22C55E' : '#10472B'} 
           />
         </TouchableOpacity>
-        <ThemedText size='lg' weight='bold'>Notifications</ThemedText>
+        <ThemedText size='lg' weight='bold'>{t('navigation.notifications')}</ThemedText>
         <View className='w-6' />
       </ThemedView>
 
       {/* Tabs */}
       <ThemedView variant='secondary' className='flex-row rounded-full mb-4'>
-        {['All', 'Unread'].map((label) => (
-          <TouchableOpacity
-            key={label}
-            onPress={() => setTab(label)}
-            className={`flex-1 py-2 rounded-full items-center ${
-              tab === label ? 'bg-primary' : ''
-            }`}
-          >
-            <ThemedText
-              weight='medium'
-              variant={tab === label ? 'inverse' : 'primary'}
+        {[t('notifications.all'), t('notifications.unread')].map((label, index) => {
+          const tabValue = ['All', 'Unread'][index];
+          return (
+            <TouchableOpacity
+              key={tabValue}
+              onPress={() => setTab(tabValue)}
+              className={`flex-1 py-2 rounded-full items-center ${
+                tab === tabValue ? 'bg-primary' : ''
+              }`}
             >
-              {label}
-            </ThemedText>
-          </TouchableOpacity>
-        ))}
+              <ThemedText
+                weight='medium'
+                variant={tab === tabValue ? 'inverse' : 'primary'}
+              >
+                {label}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
       </ThemedView>
 
       <FlatList

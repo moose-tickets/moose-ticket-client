@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
@@ -89,6 +90,7 @@ const DISPUTE_REASONS = [
 export default function DisputeFormScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<{ DisputeForm: DisputeFormScreenParams }, 'DisputeForm'>>();
   const dispatch = useAppDispatch();
   
@@ -292,9 +294,9 @@ export default function DisputeFormScreen() {
   if (!ticket) {
     return (
       <AppLayout>
-        <GoBackHeader screenTitle="Dispute Ticket" />
+        <GoBackHeader screenTitle={t('dispute.disputeTicket')} />
         <ThemedView className="flex-1 justify-center items-center">
-          <ThemedText>Loading ticket details...</ThemedText>
+          <ThemedText>{t('tickets.loadingTicketDetails')}</ThemedText>
         </ThemedView>
       </AppLayout>
     );
@@ -303,14 +305,14 @@ export default function DisputeFormScreen() {
   return (
     <AppLayout scrollable={false}>
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-        <GoBackHeader screenTitle="Dispute Ticket" />
+        <GoBackHeader screenTitle={t('dispute.disputeTicket')} />
 
         {/* Ticket Info */}
         <ThemedCard className="mb-6">
-          <ThemedText weight="bold" size="lg" className="mb-4">Ticket Information</ThemedText>
+          <ThemedText weight="bold" size="lg" className="mb-4">{t('tickets.ticketInformation')}</ThemedText>
           
           <ThemedView className="flex-row justify-between items-center mb-2">
-            <ThemedText variant="tertiary" size="sm">Ticket #</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('tickets.ticketNumber')}</ThemedText>
             <ThemedText weight="medium">{ticket.ticketNumber || ticket.id}</ThemedText>
           </ThemedView>
           
@@ -321,7 +323,9 @@ export default function DisputeFormScreen() {
           
           <ThemedView className="flex-row justify-between items-center mb-2">
             <ThemedText variant="tertiary" size="sm">Violation</ThemedText>
-            <ThemedText weight="medium">{ticket.violationType}</ThemedText>
+            <ThemedText weight="medium">
+              {ticket.infractionType?.type?.[i18n.language] || ticket.infractionType?.type?.en || ticket.violationType || 'Traffic Violation'}
+            </ThemedText>
           </ThemedView>
           
           <ThemedView className="flex-row justify-between items-center">

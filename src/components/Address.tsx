@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { ThemedView, ThemedText, ThemedInput } from './ThemedComponents';
+import { useTranslation } from 'react-i18next';
 
 
 interface AddressFormProps {
@@ -22,6 +23,7 @@ export default function AddressForm({
   initialData,
   onSubmit,
 }: AddressFormProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     fullName: initialData?.fullName || '',
     address: initialData?.address || '',
@@ -42,12 +44,24 @@ export default function AddressForm({
   return (
     <ThemedView variant="card" className='space-y-4 p-4 rounded-2xl mt-2'>
       <ThemedText size="lg" weight="bold" className='mb-2'>
-        Billing Address
+        {t('payments.billingAddress')}
       </ThemedText>
+      
+      {/* Full Name Field */}
       <ThemedView className='mb-4'>
-        <ThemedText variant="secondary" size="sm" className='mb-2'>Street Name</ThemedText>
+        <ThemedText variant="secondary" size="sm" className='mb-2'>{t('profile.fullName')}</ThemedText>
         <ThemedInput
-          placeholder='Street Address'
+          placeholder={t('profile.fullNamePlaceholder')}
+          className='rounded-xl'
+          value={formData.fullName}
+          onChangeText={(v) => handleChange('fullName', v)}
+        />
+      </ThemedView>
+      
+      <ThemedView className='mb-4'>
+        <ThemedText variant="secondary" size="sm" className='mb-2'>{t('profile.streetAddress')}</ThemedText>
+        <ThemedInput
+          placeholder={t('profile.streetAddressPlaceholder')}
           className='rounded-xl'
           value={formData.address}
           onChangeText={(v) => handleChange('address', v)}
@@ -56,9 +70,9 @@ export default function AddressForm({
 
       <ThemedView className='flex-row space-x-4'>
         <ThemedView className='flex-1'>
-          <ThemedText variant="secondary" size="sm" className='mb-2'>City</ThemedText>
+          <ThemedText variant="secondary" size="sm" className='mb-2'>{t('profile.city')}</ThemedText>
           <ThemedInput
-            placeholder='city'
+            placeholder={t('profile.cityPlaceholder')}
             className='rounded-xl mb-4 mx-1'
             value={formData.city}
             onChangeText={(v) => handleChange('city', v)}
@@ -66,9 +80,9 @@ export default function AddressForm({
         </ThemedView>
 
         <ThemedView className='flex-1'>
-          <ThemedText variant="secondary" size="sm" className='mb-2'>State/Province</ThemedText>
+          <ThemedText variant="secondary" size="sm" className='mb-2'>{t('profile.stateProvince')}</ThemedText>
           <ThemedInput
-            placeholder='State / Province'
+            placeholder={t('profile.stateProvincePlaceholder')}
             className='rounded-xl mb-4'
             value={formData.state}
             onChangeText={(v) => handleChange('state', v)}
@@ -77,9 +91,9 @@ export default function AddressForm({
       </ThemedView>
       <ThemedView className='flex-row space-x-4'>
         <ThemedView className='flex-1'>
-          <ThemedText variant="secondary" size="sm" className='mb-2'>Country</ThemedText>
+          <ThemedText variant="secondary" size="sm" className='mb-2'>{t('profile.country')}</ThemedText>
           <ThemedInput
-            placeholder='Country'
+            placeholder={t('profile.countryPlaceholder')}
             className='rounded-xl mb-4 mx-1'
             value={formData.country}
             onChangeText={(v) => handleChange('country', v)}
@@ -87,9 +101,9 @@ export default function AddressForm({
         </ThemedView>
 
         <ThemedView className='w-50'>
-          <ThemedText variant="secondary" size="sm" className='mb-2'>Zip/Postal Code</ThemedText>
+          <ThemedText variant="secondary" size="sm" className='mb-2'>{t('profile.postalCode')}</ThemedText>
           <ThemedInput
-            placeholder='Postal / ZIP Code'
+            placeholder={t('profile.postalCodePlaceholder')}
             className='rounded-xl mb-4'
             value={formData.postalCode}
             onChangeText={(v) => handleChange('postalCode', v)}

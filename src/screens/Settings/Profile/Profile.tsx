@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '../../../wrappers/layout';
 import GoBackHeader from '../../../components/GoBackHeader';
 import ConfirmationDialog from '../../../components/Dialog'; // Reuse your dialog component
@@ -18,6 +19,7 @@ import { useTheme } from '../../../wrappers/ThemeProvider';
 export default function Profile() {
   const navigation = useSettingsStackNavigation();
   const { theme, presets } = useTheme();
+  const { t } = useTranslation();
   const [vehicles, setVehicles] = useState([
     {
       _id: '1',
@@ -71,7 +73,7 @@ export default function Profile() {
   return (
     <AppLayout scrollable={false}>
       {/* Header */}
-      <GoBackHeader screenTitle='Profile' />
+      <GoBackHeader screenTitle={t('navigation.profile')} />
 
       {/* User Info */}
       <ThemedCard
@@ -128,7 +130,7 @@ export default function Profile() {
               <ThemedView className='flex-row rounded-lg p-3'>
                 <ThemedView className=' flex-1 rounded-xl px-3'>
                   <ThemedText variant='secondary' size='sm' className='mb-3'>
-                    Address
+                    {t('profile.address')}
                   </ThemedText>
                   <ThemedText variant='primary' className='mb-2'>
                     {user.address.street}
@@ -164,7 +166,7 @@ export default function Profile() {
           className='mt-2 mx-4'
           onPress={() => navigation.navigate('AddAddress')}
         >
-          Add Address
+          {t('profile.addAddress')}
         </ThemedButton>
       )}
 
@@ -177,7 +179,7 @@ export default function Profile() {
             weight='semibold'
             className='flex-1 mb-2'
           >
-            My Vehicles
+            {t('vehicles.myVehicles')}
           </ThemedText>
           <ThemedView className='mx-4 mb-4'>
             <TouchableOpacity
@@ -191,7 +193,7 @@ export default function Profile() {
                   color: theme === 'dark' ? '#22C55E' : '#10472B',
                 }}
               >
-                + Add Vehicle
+                + {t('vehicles.addVehicle')}
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
@@ -247,8 +249,8 @@ export default function Profile() {
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         visible={showDialog}
-        title='Delete Vehicle?'
-        message='Are you sure you want to delete this vehicle from your profile?'
+        title={t('vehicles.deleteVehicle')}
+        message={t('profile.deleteVehicleConfirm')}
         onClose={() => setShowDialog(false)}
         onConfirm={deleteVehicle}
       />

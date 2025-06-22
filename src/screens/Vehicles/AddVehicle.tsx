@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { SettingsStackParamList, TicketStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import { createVehicle, updateVehicle, selectVehicleLoading } from '../../store/
 export default function AddVehicle() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const route = useRoute<RouteProp<SettingsStackParamList | TicketStackParamList, 'AddVehicle'>>();
   const vehicleId = route.params?.vehicleId;
@@ -45,7 +47,7 @@ export default function AddVehicle() {
 
   const handleSave = async () => {
     if (!licensePlate || !make || !year || !model) {
-      Alert.alert('Validation Error', 'Please fill all required fields.');
+      Alert.alert(t('auth.validationFailed'), t('vehicles.fillRequiredFields'));
       return;
     }
 
@@ -61,23 +63,23 @@ export default function AddVehicle() {
       if (vehicleId) {
         await dispatch(updateVehicle({ vehicleId, ...vehicleData })).unwrap();
         setDialogProps({
-          title: 'Vehicle Updated',
-          message: 'Vehicle information updated successfully',
+          title: t('vehicles.vehicleUpdated'),
+          message: t('vehicles.vehicleUpdatedSuccess'),
           type: 'success',
         });
       } else {
         await dispatch(createVehicle(vehicleData)).unwrap();
         setDialogProps({
-          title: 'Vehicle Added',
-          message: 'New vehicle added successfully',
+          title: t('vehicles.vehicleAdded'),
+          message: t('vehicles.vehicleAddedSuccess'),
           type: 'success',
         });
       }
       setDialogVisible(true);
     } catch (error: any) {
       setDialogProps({
-        title: 'Error',
-        message: error.message || 'Failed to save vehicle',
+        title: t('common.error'),
+        message: error.message || t('vehicles.saveVehicleError'),
         type: 'error',
       });
       setDialogVisible(true);
@@ -89,25 +91,25 @@ export default function AddVehicle() {
       <ThemedScrollView className='flex-1 px-5'>
         {/* Header */}
         <GoBackHeader
-          screenTitle={vehicleId ? 'Edit Vehicle' : 'Add Vehicle'}
+          screenTitle={vehicleId ? t('vehicles.editVehicle') : t('vehicles.addVehicle')}
         />
 
         <ThemedView className='space-y-4'>
-          <ThemedText size='base' weight='medium' className='mt-4'>Plate Number</ThemedText>
+          <ThemedText size='base' weight='medium' className='mt-4'>{t('vehicles.plateNumber')}</ThemedText>
           <ThemedInput
-            placeholder='ABC1234'
+            placeholder={t('vehicles.plateNumberPlaceholder')}
             value={licensePlate}
             onChangeText={setLicensePlate}
             className='mb-3'
           />
-          <ThemedText size='base' weight='medium' className='mt-4'>Make</ThemedText>
+          <ThemedText size='base' weight='medium' className='mt-4'>{t('vehicles.make')}</ThemedText>
           <ThemedInput
-            placeholder='Honda'
+            placeholder={t('vehicles.makePlaceholder')}
             value={make}
             onChangeText={setMake}
             className='mb-3'
           />
-          <ThemedText size='base' weight='medium' className='mt-4'>Year</ThemedText>
+          <ThemedText size='base' weight='medium' className='mt-4'>{t('vehicles.year')}</ThemedText>
           <ThemedInput
             placeholder={`${new Date().getFullYear() - 1}`}
             keyboardType='numeric'
@@ -115,16 +117,16 @@ export default function AddVehicle() {
             onChangeText={setYear}
             className='mb-3'
           />
-          <ThemedText size='base' weight='medium' className='mt-4'>Model</ThemedText>
+          <ThemedText size='base' weight='medium' className='mt-4'>{t('vehicles.model')}</ThemedText>
           <ThemedInput
-            placeholder='Civic'
+            placeholder={t('vehicles.modelPlaceholder')}
             value={model}
             onChangeText={setModel}
             className='mb-3'
           />
-          <ThemedText size='base' weight='medium' className='mt-4'>Color (Optional)</ThemedText>
+          <ThemedText size='base' weight='medium' className='mt-4'>{t('vehicles.colorOptional')}</ThemedText>
           <ThemedInput
-            placeholder='Midnight Blue'
+            placeholder={t('vehicles.colorPlaceholder')}
             value={color}
             onChangeText={setColor}
             className='mb-3'
@@ -138,11 +140,11 @@ export default function AddVehicle() {
           className='mt-8'
           disabled={isLoading}
         >
-          {isLoading ? 'Saving...' : (vehicleId ? 'Update Vehicle' : 'Save Vehicle')}
+          {isLoading ? t('common.loading') : (vehicleId ? t('vehicles.updateVehicle') : t('vehicles.saveVehicle'))}
         </ThemedButton>
         {!vehicleId && (
           <ThemedText variant='tertiary' className='text-center mt-2'>
-            You can add up to 2 vehicles.
+            {t('vehicles.vehicleLimit')}
           </ThemedText>
         )}
       </ThemedScrollView>

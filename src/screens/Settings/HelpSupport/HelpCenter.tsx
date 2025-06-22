@@ -11,6 +11,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome,
 } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useSettingsStackNavigation } from '../../../navigation/hooks';
 import AppLayout from '../../../wrappers/layout';
 import GoBackHeader from '../../../components/GoBackHeader';
@@ -19,14 +20,15 @@ import { useTheme } from '../../../wrappers/ThemeProvider';
 
 export default function HelpSupport() {
   const navigation = useSettingsStackNavigation();
-  const theme = useTheme()
+  const theme = useTheme();
+  const { t } = useTranslation();
 
   const topics = [
-    { question: 'How do I pay a ticket?' },
-    { question: 'How do I dispute a ticket?' },
-    { question: "Why didn't I get a notification?" },
-    { question: 'How to update my payment method?' },
-    { question: 'How to add a vehicle?' },
+    { question: t('help.howToPayTicket') },
+    { question: t('help.howToDisputeTicket') },
+    { question: t('help.whyNoNotification') },
+    { question: t('help.updatePaymentMethod') },
+    { question: t('help.addVehicle') },
   ];
 
   const openEmail = () => Linking.openURL('mailto:support@mooseticket.ca');
@@ -38,19 +40,19 @@ export default function HelpSupport() {
     <AppLayout scrollable={false}>
       <ThemedScrollView className='flex-1 px-5'>
         {/* Header */}
-        <GoBackHeader screenTitle='Help & Support' />
+        <GoBackHeader screenTitle={t('legal.helpSupport')} />
 
         {/* Search */}
         <ThemedView className='border border-gray-300 rounded-xl p-3 flex-row items-center mb-4'>
           <Ionicons name='search' size={20} color='gray' className='mr-2' />
           <TextInput
-            placeholder='Search for help topics...'
+            placeholder={t('help.searchHelp')}
             className='flex-1 text-base'
           />
         </ThemedView>
 
         {/* Popular Topics */}
-        <ThemedText className='font-medium mb-2'>Popular Topics</ThemedText>
+        <ThemedText className='font-medium mb-2'>{t('help.popularTopics')}</ThemedText>
         <ThemedView className='space-y-3 mb-10'>
           {topics.map((item, index) => (
             <TouchableOpacity
@@ -100,12 +102,12 @@ export default function HelpSupport() {
         </TouchableOpacity> */}
 
         {/* Resources & Policies */}
-        <ThemedText variant='primary' size='base' weight='medium' className='mb-2'>Resources & Policies</ThemedText>
+        <ThemedText variant='primary' size='base' weight='medium' className='mb-2'>{t('help.resourcesPolicies')}</ThemedText>
         <ThemedView className='space-y-3 mb-10'>
           <TouchableOpacity className='flex-row items-center justify-between p-4 border border-border rounded-xl mb-4' onPress={() => navigation.navigate('Privacy')}>
             <ThemedView className='flex-row items-center space-x-2'>
               <Ionicons name='lock-closed-outline' size={20} color={theme === 'dark' ? '#9CA3AF' : '#6B7280'} className='mr-1'/>
-              <ThemedText variant='primary' size='base'>Privacy Policy</ThemedText>
+              <ThemedText variant='primary' size='base'>{t('legal.privacyPolicy')}</ThemedText>
             </ThemedView>
             <Ionicons name='chevron-forward' size={20} ccolor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
@@ -113,14 +115,14 @@ export default function HelpSupport() {
           <TouchableOpacity className='flex-row items-center justify-between p-4 border border-border rounded-xl mb-4' onPress={() => navigation.navigate('Terms')}>
             <ThemedView className='flex-row items-center space-x-2'>
               <Ionicons name='document-text-outline' size={20} color={theme === 'dark' ? '#9CA3AF' : '#6B7280'} className='mr-1'/>
-              <ThemedText variant='primary' size='base'>Terms of Service</ThemedText>
+              <ThemedText variant='primary' size='base'>{t('legal.termsOfService')}</ThemedText>
             </ThemedView>
             <Ionicons name='chevron-forward' size={20} color={theme === 'dark' ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
         </ThemedView>
 
         {/* Contact Us */}
-        <ThemedText variant='primary' size='base' weight='medium' className='mb-2'>Contact Us</ThemedText>
+        <ThemedText variant='primary' size='base' weight='medium' className='mb-2'>{t('help.contactUs')}</ThemedText>
         <TouchableOpacity
           onPress={openEmail}
           className='flex-row items-center justify-between p-4 border border-border rounded-xl mb-3'
@@ -141,11 +143,11 @@ export default function HelpSupport() {
           onPress={openBugReport}
           className='items-center mt-4 mb-2'
         >
-          <ThemedText className='text-red-600 font-medium'>Report a Bug</ThemedText>
+          <ThemedText className='text-red-600 font-medium'>{t('help.reportBug')}</ThemedText>
         </TouchableOpacity>
 
         {/* App Version */}
-        <ThemedText variant='tertiary' className='text-center mb-8'>Version 1.0.0</ThemedText>
+        <ThemedText variant='tertiary' className='text-center mb-8'>{t('settings.version')}</ThemedText>
       </ThemedScrollView>
     </AppLayout>
   );

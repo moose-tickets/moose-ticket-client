@@ -213,13 +213,7 @@ baseClient.interceptors.response.use(
       });
     }
 
-    console.log('❤️ API response received:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data,
-      headers: response.headers,
-      requestId: response.config.headers?.["X-Request-ID"],
-    });
+    console.log('❤️ API response received:');
     return response;
   },
   async (error: AxiosError) => {

@@ -62,8 +62,18 @@ interface PopulatedVehicle {
 interface PopulatedInfractionType {
   _id: string;
   code: string;
-  type: string;
-  description: string;
+  type: {
+      en: string;
+      es: string;
+      fr: string;
+      ar: string;
+    };
+    violation:{
+      en: string;
+      es: string;
+      fr: string;
+      ar: string;
+    };
   icon: string;
 }
 
@@ -79,7 +89,18 @@ export interface ITicketListResponse {
     licensePlate: string;
   },
   infractionType: {
-    type: string;
+    type: {
+      en: string;
+      es: string;
+      fr: string;
+      ar: string;
+    };
+    violation:{
+      en: string;
+      es: string;
+      fr: string;
+      ar: string;
+    };
     icon: string;
   },
   amount: number;

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { useTranslation } from 'react-i18next';
 import { useAuthStackNavigation } from "../../navigation/hooks";
 import { useTheme } from "../../wrappers/ThemeProvider";
 import useStatusBarFix from '../../hooks/useStatusBarFix';
@@ -22,6 +23,7 @@ import { sanitizeEmail, sanitizePassword, sanitizeName } from "../../utils/sanit
 export default function SignUp() {
   const navigation = useAuthStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   
   // Redux state
@@ -63,7 +65,7 @@ export default function SignUp() {
   useEffect(() => {
     if (error) {
       setDialogProps({
-        title: "Registration Error",
+        title: t('auth.registrationError'),
         message: error,
         type: "error",
       });
@@ -106,7 +108,7 @@ export default function SignUp() {
 
     // Validate confirm password
     if (password !== confirmPassword) {
-      errors.confirmPassword = ["Passwords do not match"];
+      errors.confirmPassword = [t('validation.passwordsDoNotMatch')];
     }
 
     // Validate required fields
@@ -141,12 +143,12 @@ export default function SignUp() {
       // Create detailed error message from validation errors
       const errorMessages: string[] = [];
       const fieldNames: Record<string, string> = {
-        firstName: 'First Name',
-        lastName: 'Last Name',
-        email: 'Email',
-        password: 'Password',
-        confirmPassword: 'Confirm Password',
-        phone: 'Phone Number'
+        firstName: t('auth.firstName'),
+        lastName: t('auth.lastName'),
+        email: t('auth.email'),
+        password: t('auth.password'),
+        confirmPassword: t('auth.confirmPassword'),
+        phone: t('auth.phoneNumber')
       };
       
       Object.entries(validationErrors).forEach(([field, errors]) => {
@@ -157,10 +159,10 @@ export default function SignUp() {
       });
       
       setDialogProps({
-        title: "Validation Failed",
+        title: t('auth.validationFailed'),
         message: errorMessages.length > 0 
           ? errorMessages.join('\n\n') 
-          : "Please check your input and try again.",
+          : t('errors.checkInput'),
         type: "error",
       });
       setDialogVisible(true);
@@ -186,15 +188,15 @@ export default function SignUp() {
       // Check if user was automatically logged in or needs email verification
       if (result.tokens) {
         setDialogProps({
-          title: "Account Created",
-          message: "Your account has been created successfully. Welcome to MooseTickets!",
+          title: t('auth.accountCreated'),
+          message: t('auth.accountCreatedSuccess'),
           type: "success",
         });
         setShouldNavigateToSignIn(false);
       } else {
         setDialogProps({
-          title: "Account Created",
-          message: "Your account has been created successfully! Please check your email to verify your account before signing in.",
+          title: t('auth.accountCreated'),
+          message: t('auth.accountCreatedVerifyEmail'),
           type: "success",
         });
         setShouldNavigateToSignIn(true);
@@ -203,8 +205,8 @@ export default function SignUp() {
 
     } catch (error: any) {
       setDialogProps({
-        title: "Registration Failed",
-        message: error.message || "Failed to create account. Please try again.",
+        title: t('auth.registrationFailed'),
+        message: error.message || t('auth.registrationFailedMessage'),
         type: "error",
       });
       setDialogVisible(true);
@@ -219,15 +221,15 @@ export default function SignUp() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ThemedText variant="primary" size="2xl" weight="bold" className="text-center mb-1">
-          Create Account
+          {t('auth.createAccount')}
         </ThemedText>
         <ThemedText variant="secondary" className="text-center mb-6">
-          Join our community
+          {t('auth.joinCommunity')}
         </ThemedText>
 
         <InputField
-          label="First Name"
-          placeholder="Enter your first name"
+          label={t('auth.firstName')}
+          placeholder={t('auth.firstNamePlaceholder')}
           value={firstName}
           onChangeText={(text) => {
             setFirstName(text);
@@ -240,8 +242,8 @@ export default function SignUp() {
         />
 
         <InputField
-          label="Last Name"
-          placeholder="Enter your last name"
+          label={t('auth.lastName')}
+          placeholder={t('auth.lastNamePlaceholder')}
           value={lastName}
           onChangeText={(text) => {
             setLastName(text);
@@ -254,8 +256,8 @@ export default function SignUp() {
         />
 
         <InputField
-          label="Email"
-          placeholder="Enter your email address"
+          label={t('auth.email')}
+          placeholder={t('auth.emailAddressPlaceholder')}
           value={email}
           onChangeText={(text) => {
             setEmail(text);
@@ -270,8 +272,8 @@ export default function SignUp() {
         />
 
         <InputField
-          label="Password"
-          placeholder="Create password"
+          label={t('auth.password')}
+          placeholder={t('auth.createPasswordPlaceholder')}
           value={password}
           onChangeText={(txt: string) => {
             setPassword(txt);
@@ -286,8 +288,8 @@ export default function SignUp() {
         />
 
         <InputField
-          label="Confirm Password"
-          placeholder="Confirm your password"
+          label={t('auth.confirmPassword')}
+          placeholder={t('auth.confirmPasswordPlaceholder')}
           value={confirmPassword}
           onChangeText={(text) => {
             setConfirmPassword(text);
@@ -301,8 +303,8 @@ export default function SignUp() {
         />
 
         <InputField
-          label="Phone Number"
-          placeholder="e.g., +1234567890"
+          label={t('auth.phoneNumber')}
+          placeholder={t('auth.phoneNumberPlaceholder')}
           value={phone}
           onChangeText={(text) => {
             setPhone(text);
@@ -316,14 +318,14 @@ export default function SignUp() {
         />
 
         <ThemedText variant="primary" size="sm" weight="medium" className="mt-2 mb-1">
-          Password must contain:
+          {t('auth.passwordMustContain')}
         </ThemedText>
         {[
-          { flag: validLength, label: "At least 8 characters" },
-          { flag: hasUpper, label: "One uppercase letter" },
-          { flag: hasLower, label: "One lowercase letter" },
-          { flag: hasNumber, label: "One number" },
-          { flag: hasSpecial, label: "One special character" },
+          { flag: validLength, label: t('auth.passwordRequirement1') },
+          { flag: hasUpper, label: t('auth.passwordRequirement2') },
+          { flag: hasLower, label: t('auth.passwordRequirement3') },
+          { flag: hasNumber, label: t('auth.passwordRequirement4') },
+          { flag: hasSpecial, label: t('auth.passwordRequirement5') },
         ].map(({ flag, label }) => (
           <ThemedView key={label} className="flex-row items-center mb-1">
             <Ionicons
@@ -343,28 +345,28 @@ export default function SignUp() {
           disabled={isLoading}
           className="mt-6"
         >
-          {isLoading ? "Creating Account…" : "Create Account"}
+          {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
         </ThemedButton>
 
-        <Passport text="Or sign up with" />
+        <Passport text={t('auth.orSignUpWith')} />
 
         <ThemedText variant="secondary" size="xs" className="text-center mb-2">
-          By signing up, you agree to our{" "}
+          {t('auth.agreeToTermsSignUp')}{" "}
           <ThemedText variant="primary" size="xs" className="text-secondary underline">
-            Terms of Service
+            {t('legal.termsOfService')}
           </ThemedText>
-          {" "}and{" "}
+          {" "}{t('common.and')}{" "}
           <ThemedText variant="primary" size="xs" className="text-secondary underline">
-            Privacy Policy
+            {t('legal.privacyPolicy')}
           </ThemedText>
           .
         </ThemedText>
 
         <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
           <ThemedText variant="primary" size="sm" className="text-center mt-2">
-            Already have an account?{" "}
+            {t('auth.alreadyHaveAccount')}{" "}
             <ThemedText variant="primary" size="sm" weight="medium" className="text-secondary">
-              Sign in
+              {t('auth.signIn')}
             </ThemedText>
           </ThemedText>
         </TouchableOpacity>

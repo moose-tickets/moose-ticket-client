@@ -3,6 +3,7 @@ import { TouchableOpacity, Image } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
@@ -31,6 +32,25 @@ import { InfractionType } from '../../store/slices/infractionTypeSlice';
 export default function AddTicket() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language as 'en' | 'fr' | 'ar' | 'es';
+  
+  // Helper function to get localized infraction type text
+  const getLocalizedInfractionType = (infractionType: InfractionType) => {
+    if (!infractionType) return '';
+    
+    // Handle new multilingual structure
+    if (infractionType.type && typeof infractionType.type === 'object') {
+      return infractionType.type[currentLanguage] || infractionType.type.en || '';
+    }
+    
+    // Handle old string structure (backwards compatibility)
+    if (typeof infractionType.type === 'string') {
+      return infractionType.type;
+    }
+    
+    return '';
+  };
   const dispatch = useAppDispatch();
 
   // Redux state
@@ -65,8 +85,8 @@ export default function AddTicket() {
   const { checkBot, isHuman, riskLevel } = useBotCheck({
     onBotDetected: (context) => {
       setDialogProps({
-        title: 'Security Check Failed',
-        message: 'Suspicious activity detected. Please try again later.',
+        title: t('errors.permissionDenied'),
+        message: t('errors.somethingWentWrong'),
         type: 'error',
       });
       setDialogVisible(true);
@@ -77,7 +97,7 @@ export default function AddTicket() {
   useEffect(() => {
     if (error) {
       setDialogProps({
-        title: 'Error',
+        title: t('common.error'),
         message: error,
         type: 'error',
       });
@@ -96,13 +116,13 @@ export default function AddTicket() {
 
     // Validate selected infraction type
     if (!selectedInfractionType) {
-      errors.violation = ['Please select a violation type'];
+      errors.violation = [t('tickets.selectViolationType')];
     }
 
     // Validate required fields
     const requiredFields = [
-      { key: 'location', label: 'Location' },
-      { key: 'city', label: 'City' },
+      { key: 'location', label: t('tickets.location') },
+      { key: 'city', label: t('tickets.city') },
     ];
 
     requiredFields.forEach(({ key, label }) => {
@@ -138,8 +158,8 @@ export default function AddTicket() {
       const isFormValid = validateForm();
       if (!isFormValid) {
         setDialogProps({
-          title: 'Validation Error',
-          message: 'Please correct the errors below and try again.',
+          title: t('auth.validationFailed'),
+          message: t('tickets.correctErrors'),
           type: 'error',
         });
         setDialogVisible(true);
@@ -155,7 +175,7 @@ export default function AddTicket() {
       // 3. Prepare ticket data for API
       const ticketData = {
         licensePlate: sanitizeLicensePlate(form.plate),
-        violationType: selectedInfractionType?.type || '',
+        violationType: getLocalizedInfractionType(selectedInfractionType) || '',
         violationCode: selectedInfractionType?.code || '',
         issueDate: form.date.toISOString(),
         location: sanitizeUserContent(form.location),
@@ -175,8 +195,8 @@ export default function AddTicket() {
 
       // Success
       setDialogProps({
-        title: 'Ticket Added Successfully',
-        message: 'Your ticket has been recorded and saved securely.',
+        title: t('tickets.ticketAddedSuccess'),
+        message: t('tickets.ticketSavedSecurely'),
         type: 'success',
       });
       setDialogVisible(true);
@@ -190,8 +210,8 @@ export default function AddTicket() {
       console.error('Save ticket error:', error);
 
       setDialogProps({
-        title: 'Save Failed',
-        message: error.message || 'Failed to save ticket. Please try again.',
+        title: t('tickets.saveFailed'),
+        message: error.message || t('tickets.saveFailedMessage'),
         type: 'error',
       });
       setDialogVisible(true);
@@ -202,12 +222,12 @@ export default function AddTicket() {
     <AppLayout scrollable={false}>
       <ThemedScrollView className='flex-1 px-5 '>
         {/* Header */}
-        <GoBackHeader screenTitle='Add Ticket' />
+        <GoBackHeader screenTitle={t('tickets.addTicket')} />
 
         {/* License Plate */}
         <ThemedView className='mb-4'>
           <ThemedText weight='medium' className='mb-1'>
-            License Plate *
+            {t('tickets.licensePlate')} *
           </ThemedText>
           <ThemedInput
             value={form.plate}
@@ -219,7 +239,7 @@ export default function AddTicket() {
                 setValidationErrors((prev) => ({ ...prev, plate: [] }));
               }
             }}
-            placeholder='e.g., ABC1234'
+            placeholder={t('tickets.licensePlatePlaceholder')}
           />
           {validationErrors.plate && validationErrors.plate.length > 0 && (
             <ThemedText variant='error' size='xs' className='mt-1 ml-1'>
@@ -231,7 +251,7 @@ export default function AddTicket() {
         {/* Violation Type */}
         <ThemedView className='mb-4'>
           <ThemedText weight='medium' className='mb-1'>
-            Violation Type *
+            {t('tickets.violationType')} *
           </ThemedText>
 
           <InfractionTypeSelector
@@ -240,7 +260,7 @@ export default function AddTicket() {
               setSelectedInfractionType(infractionType);
               setForm((prev) => ({
                 ...prev,
-                violation: infractionType.type,
+                violation: getLocalizedInfractionType(infractionType),
                 fine: infractionType.baseFine.toString(),
               }));
               // Clear validation error when user selects
@@ -248,7 +268,7 @@ export default function AddTicket() {
                 setValidationErrors((prev) => ({ ...prev, violation: [] }));
               }
             }}
-            placeholder='Select violation type'
+            placeholder={t('tickets.selectViolationType')}
           />
           {validationErrors.violation &&
             validationErrors.violation.length > 0 && (
@@ -260,7 +280,7 @@ export default function AddTicket() {
             <ThemedView className='mt-2 p-3 bg-background border border-border rounded-xl'>
               <ThemedView className='flex-row justify-between items-center mb-1'>
                 <ThemedText size='sm' variant='secondary'>
-                  Code: {selectedInfractionType.code}
+                  {t('tickets.code')}: {selectedInfractionType.code}
                 </ThemedText>
                 <ThemedView className='flex-row items-center gap-2'>
                   <ThemedView
@@ -292,10 +312,10 @@ export default function AddTicket() {
                   size='sm'
                   style={{ color: '#e74c3c', fontWeight: '600' }}
                 >
-                 Base Fine: ${selectedInfractionType.baseFine}
+                 {t('tickets.baseFine')}: ${selectedInfractionType.baseFine}
                 </ThemedText>
                 <ThemedText size='sm' variant='secondary'>
-                  Points: {selectedInfractionType.points}
+                  {t('tickets.points')}: {selectedInfractionType.points}
                 </ThemedText>
               </ThemedView>
             </ThemedView>
@@ -304,7 +324,7 @@ export default function AddTicket() {
 
         {/* Date and Time */}
         <ThemedText weight='medium' className='mb-1'>
-          Date & Time
+          {t('tickets.dateTime')}
         </ThemedText>
         <ThemedView className='mb-4'>
           <TouchableOpacity
@@ -351,7 +371,7 @@ export default function AddTicket() {
 
         {/* Location */}
         <ThemedText weight='medium' className='mb-1'>
-          Location
+          {t('tickets.location')}
         </ThemedText>
         <ThemedView className='mb-4'>
           <ThemedInput
@@ -359,7 +379,7 @@ export default function AddTicket() {
             onChangeText={(text) =>
               setForm((prev) => ({ ...prev, location: text }))
             }
-            placeholder='Street (e.g., 123 King St W)'
+            placeholder={t('tickets.streetPlaceholder')}
             autoCapitalize='words'
             className='mb-2'
           />
@@ -368,7 +388,7 @@ export default function AddTicket() {
             onChangeText={(text) =>
               setForm((prev) => ({ ...prev, city: text }))
             }
-            placeholder='City'
+            placeholder={t('tickets.city')}
             autoCapitalize='words'
             className='mb-2'
           />
@@ -377,7 +397,7 @@ export default function AddTicket() {
             onChangeText={(text) =>
               setForm((prev) => ({ ...prev, postalCode: text }))
             }
-            placeholder='Postal Code'
+            placeholder={t('tickets.postalCode')}
             autoCapitalize='characters'
             className='mb-4'
           />
@@ -386,11 +406,11 @@ export default function AddTicket() {
         {/* Fine Amount - Auto-populated */}
         <ThemedView className='mb-4'>
           <ThemedText weight='medium' className='mb-1'>
-            Fine Amount
+            {t('tickets.fineAmount')}
           </ThemedText>
-          <ThemedView className=' flex-row items-start border border-border rounded-xl px-4 py-3 bg-gray-50'>
+          <ThemedView className=' flex-row items-start border border-border rounded-xl px-4 py-3'>
             <ThemedView className='flex-column items-start mr-6'>
-              <ThemedText>Base Fine</ThemedText>
+              <ThemedText>{t('tickets.baseFine')}</ThemedText>
               <ThemedView className='flex-row items-center mr-2'>
               <Ionicons
                 name='cash-outline'
@@ -410,7 +430,7 @@ export default function AddTicket() {
               onChangeText={(text) =>
                 setForm((prev) => ({ ...prev, fineAmount: text }))
               }
-              placeholder='Type actual amount if different'
+              placeholder={t('tickets.actualAmountPlaceholder')}
               keyboardType='decimal-pad'
               className='flex-1 border'
              
@@ -420,10 +440,10 @@ export default function AddTicket() {
 
         {/* Upload Photo */}
         <ThemedText weight='medium' className='mb-1'>
-          Upload Photo
+          {t('tickets.uploadPhoto')}
         </ThemedText>
         <ThemedButton onPress={pickImage} variant='secondary' className='mb-2'>
-          Choose File
+          {t('tickets.chooseFile')}
         </ThemedButton>
         {form.imageUri ? (
           <Image
@@ -432,18 +452,18 @@ export default function AddTicket() {
           />
         ) : (
           <ThemedText variant='tertiary' className='mb-4'>
-            No file chosen
+            {t('tickets.noFileChosen')}
           </ThemedText>
         )}
 
         {/* Notes */}
         <ThemedText weight='medium' className='mb-1'>
-          Notes
+          {t('tickets.notes')}
         </ThemedText>
         <ThemedInput
           value={form.notes}
           onChangeText={(text) => setForm((prev) => ({ ...prev, notes: text }))}
-          placeholder='Add any extra details...'
+          placeholder={t('tickets.notesPlaceholder')}
           multiline
           numberOfLines={4}
           className='mb-6'
@@ -453,7 +473,7 @@ export default function AddTicket() {
         {!isHuman && riskLevel !== 'low' && (
           <ThemedView className='mb-4 p-3 bg-warning-light rounded-xl'>
             <ThemedText variant='warning' size='xs' className='text-center'>
-              Security verification in progress...
+              {t('auth.securityVerification')}
             </ThemedText>
           </ThemedView>
         )}
@@ -470,7 +490,7 @@ export default function AddTicket() {
             className='flex-1 mx-3'
             disabled={isCreating}
           >
-            Cancel
+            {t('common.cancel')}
           </ThemedButton>
           <ThemedButton
             variant='primary'
@@ -478,7 +498,7 @@ export default function AddTicket() {
             className='flex-1 mx-3'
             disabled={isCreating || (!isHuman && riskLevel === 'critical')}
           >
-            {isCreating ? 'Saving...' : 'Save Ticket'}
+            {isCreating ? t('tickets.saving') : t('tickets.saveTicket')}
           </ThemedButton>
         </ThemedView>
       </ThemedScrollView>

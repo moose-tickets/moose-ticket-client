@@ -11,6 +11,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
 import Dialog from '../../components/Dialog';
@@ -48,6 +49,7 @@ interface PayNowScreenParams {
 export default function PayNowScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<{ PayNow: PayNowScreenParams }, 'PayNow'>>();
   const dispatch = useAppDispatch();
   
@@ -113,7 +115,7 @@ export default function PayNowScreen() {
   useEffect(() => {
     if (paymentError) {
       setDialogProps({
-        title: 'Payment Error',
+        title: t('payments.paymentError'),
         message: paymentError,
         type: 'error',
       });
@@ -137,7 +139,7 @@ export default function PayNowScreen() {
     }
 
     // Validate cardholder name
-    const nameResult = validateRequired(newCardForm.cardholderName, 'Cardholder name');
+    const nameResult = validateRequired(newCardForm.cardholderName, t('payments.cardholderName'));
     if (!nameResult.isValid) {
       errors.cardholderName = nameResult.errors;
     }
@@ -145,27 +147,27 @@ export default function PayNowScreen() {
     // Validate expiry date
     const expiryRegex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
     if (!expiryRegex.test(newCardForm.cardExpiry)) {
-      errors.cardExpiry = ['Invalid expiry date format (MM/YY)'];
+      errors.cardExpiry = [t('payments.invalidExpiryFormat')];
     } else {
       const [month, year] = newCardForm.cardExpiry.split('/');
       const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
       if (expiryDate <= new Date()) {
-        errors.cardExpiry = ['Card has expired'];
+        errors.cardExpiry = [t('payments.cardExpired')];
       }
     }
 
     // Validate billing address required fields
     const requiredAddressFields = [
-      { key: 'fullName', label: 'Full name' },
-      { key: 'address', label: 'Address' },
-      { key: 'city', label: 'City' },
-      { key: 'postalCode', label: 'Postal code' },
+      { key: 'fullName', label: t('profile.fullName') },
+      { key: 'address', label: t('profile.address') },
+      { key: 'city', label: t('profile.city') },
+      { key: 'postalCode', label: t('profile.postalCode') },
     ];
 
     requiredAddressFields.forEach(({ key, label }) => {
       const value = newCardForm.billingAddress[key as keyof typeof newCardForm.billingAddress];
       if (!value || value.trim().length === 0) {
-        errors[`billingAddress.${key}`] = [`${label} is required`];
+        errors[`billingAddress.${key}`] = [t('validation.fieldRequired', { field: label })];
       }
     });
 
@@ -184,8 +186,8 @@ export default function PayNowScreen() {
         const isValid = validateNewCardForm();
         if (!isValid) {
           setDialogProps({
-            title: 'Validation Error',
-            message: 'Please correct the errors and try again.',
+            title: t('auth.validationFailed'),
+            message: t('tickets.correctErrors'),
             type: 'error',
           });
           setDialogVisible(true);
@@ -221,8 +223,8 @@ export default function PayNowScreen() {
       })).unwrap();
 
       setDialogProps({
-        title: 'Payment Successful',
-        message: `Your payment of $${(ticket.fineAmount || 0).toFixed(2)} has been processed successfully.`,
+        title: t('payments.paymentSuccessful'),
+        message: t('payments.paymentProcessedSuccessfully', { amount: (ticket.fineAmount || 0).toFixed(2) }),
         type: 'success',
       });
       setDialogVisible(true);
@@ -234,8 +236,8 @@ export default function PayNowScreen() {
 
     } catch (error: any) {
       setDialogProps({
-        title: 'Payment Failed',
-        message: error.message || 'Payment could not be processed. Please try again.',
+        title: t('payments.paymentFailed'),
+        message: error.message || t('payments.paymentFailedMessage'),
         type: 'error',
       });
       setDialogVisible(true);
@@ -259,9 +261,9 @@ export default function PayNowScreen() {
   if (!ticket) {
     return (
       <AppLayout>
-        <GoBackHeader screenTitle="Pay Now" />
+        <GoBackHeader screenTitle={t('payments.payNow')} />
         <ThemedView className="flex-1 justify-center items-center">
-          <ThemedText>Loading ticket details...</ThemedText>
+          <ThemedText>{t('tickets.loadingTicketDetails')}</ThemedText>
         </ThemedView>
       </AppLayout>
     );
@@ -270,28 +272,28 @@ export default function PayNowScreen() {
   return (
     <AppLayout scrollable={false}>
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-        <GoBackHeader screenTitle="Pay Now" />
+        <GoBackHeader screenTitle={t('payments.payNow')} />
 
         {/* Ticket Summary */}
         <ThemedCard className="mb-6">
           <ThemedView className="flex-row justify-between items-center mb-4">
-            <ThemedText variant="tertiary" size="sm">Ticket #</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('tickets.ticketNumber')}</ThemedText>
             <ThemedText weight="medium">{ticket.ticketNumber || ticket.id}</ThemedText>
           </ThemedView>
           
           <ThemedView className="flex-row justify-between items-center mb-4">
-            <ThemedText variant="tertiary" size="sm">License Plate</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('vehicles.plateNumber')}</ThemedText>
             <ThemedText weight="medium">{ticket.licensePlate}</ThemedText>
           </ThemedView>
           
           <ThemedView className="flex-row justify-between items-center mb-4">
-            <ThemedText variant="tertiary" size="sm">Violation</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('tickets.violation')}</ThemedText>
             <ThemedText weight="medium">{ticket.violationType}</ThemedText>
           </ThemedView>
           
           <View className="border-t border-border pt-4 mt-4">
             <ThemedView className="flex-row justify-between items-center">
-              <ThemedText weight="bold" size="lg">Total Amount</ThemedText>
+              <ThemedText weight="bold" size="lg">{t('payments.totalAmount')}</ThemedText>
               <ThemedText weight="bold" size="xl" style={{ color: theme === 'dark' ? '#FFA366' : '#E18743' }}>
                 ${(ticket.fineAmount || 0).toFixed(2)}
               </ThemedText>
@@ -301,7 +303,7 @@ export default function PayNowScreen() {
 
         {/* Payment Method Selection */}
         <ThemedView className="mb-6">
-          <ThemedText weight="bold" size="lg" className="mb-4">Payment Method</ThemedText>
+          <ThemedText weight="bold" size="lg" className="mb-4">{t('payments.paymentMethod')}</ThemedText>
           
           {paymentMethods.length > 0 && (
             <ThemedView className="mb-4">
@@ -320,7 +322,7 @@ export default function PayNowScreen() {
                     <ThemedView className="w-2 h-2 rounded-full bg-background m-auto" />
                   )}
                 </ThemedView>
-                <ThemedText weight="medium">Use Saved Payment Method</ThemedText>
+                <ThemedText weight="medium">{t('payments.useSavedPaymentMethod')}</ThemedText>
               </TouchableOpacity>
               
               {paymentMethod === 'existing' && (
@@ -344,12 +346,12 @@ export default function PayNowScreen() {
                           •••• •••• •••• {pm.last4}
                         </ThemedText>
                         <ThemedText variant="tertiary" size="sm">
-                          {pm.brand?.toUpperCase()} • Expires {pm.expMonth}/{pm.expYear}
+                          {pm.brand?.toUpperCase()} • {t('payments.expires')} {pm.expMonth}/{pm.expYear}
                         </ThemedText>
                       </ThemedView>
                       {pm.isDefault && (
                         <ThemedView className="bg-primary px-2 py-1 rounded">
-                          <ThemedText variant="inverse" size="xs">Default</ThemedText>
+                          <ThemedText variant="inverse" size="xs">{t('payments.default')}</ThemedText>
                         </ThemedView>
                       )}
                     </TouchableOpacity>
@@ -374,18 +376,18 @@ export default function PayNowScreen() {
                 <ThemedView className="w-2 h-2 rounded-full bg-background m-auto" />
               )}
             </ThemedView>
-            <ThemedText weight="medium">Add New Payment Method</ThemedText>
+            <ThemedText weight="medium">{t('payments.addNewPaymentMethod')}</ThemedText>
           </TouchableOpacity>
         </ThemedView>
 
         {/* New Card Form */}
         {paymentMethod === 'new' && (
           <ThemedCard className="mb-6">
-            <ThemedText weight="bold" className="mb-4">Card Information</ThemedText>
+            <ThemedText weight="bold" className="mb-4">{t('payments.cardInformation')}</ThemedText>
             
             {/* Card Number */}
             <ThemedView className="mb-4">
-              <ThemedText variant="tertiary" size="sm" className="mb-2">Card Number</ThemedText>
+              <ThemedText variant="tertiary" size="sm" className="mb-2">{t('payments.cardNumber')}</ThemedText>
               <ThemedInput
                 value={newCardForm.cardNumber}
                 onChangeText={(text) => {
@@ -397,7 +399,7 @@ export default function PayNowScreen() {
                     }
                   }
                 }}
-                placeholder="1234 5678 9012 3456"
+                placeholder={t('payments.cardNumberPlaceholder')}
                 keyboardType="numeric"
               />
               {validationErrors.cardNumber && validationErrors.cardNumber.length > 0 && (
@@ -409,7 +411,7 @@ export default function PayNowScreen() {
 
             {/* Cardholder Name */}
             <ThemedView className="mb-4">
-              <ThemedText variant="tertiary" size="sm" className="mb-2">Cardholder Name</ThemedText>
+              <ThemedText variant="tertiary" size="sm" className="mb-2">{t('payments.cardholderName')}</ThemedText>
               <ThemedInput
                 value={newCardForm.cardholderName}
                 onChangeText={(text) => {
@@ -418,7 +420,7 @@ export default function PayNowScreen() {
                     setValidationErrors(prev => ({ ...prev, cardholderName: [] }));
                   }
                 }}
-                placeholder="John Doe"
+                placeholder={t('payments.cardholderNamePlaceholder')}
                 autoCapitalize="words"
               />
               {validationErrors.cardholderName && validationErrors.cardholderName.length > 0 && (
@@ -431,7 +433,7 @@ export default function PayNowScreen() {
             {/* Expiry and CVV */}
             <ThemedView className="flex-row space-x-4 mb-4">
               <ThemedView className="flex-1">
-                <ThemedText variant="tertiary" size="sm" className="mb-2">Expiry Date</ThemedText>
+                <ThemedText variant="tertiary" size="sm" className="mb-2">{t('payments.expiryDate')}</ThemedText>
                 <ThemedInput
                   value={newCardForm.cardExpiry}
                   onChangeText={(text) => {
@@ -443,7 +445,7 @@ export default function PayNowScreen() {
                       }
                     }
                   }}
-                  placeholder="MM/YY"
+                  placeholder={t('payments.expiryPlaceholder')}
                   keyboardType="numeric"
                 />
                 {validationErrors.cardExpiry && validationErrors.cardExpiry.length > 0 && (
@@ -454,7 +456,7 @@ export default function PayNowScreen() {
               </ThemedView>
               
               <ThemedView className="flex-1">
-                <ThemedText variant="tertiary" size="sm" className="mb-2">CVV</ThemedText>
+                <ThemedText variant="tertiary" size="sm" className="mb-2">{t('payments.cvv')}</ThemedText>
                 <ThemedInput
                   value={newCardForm.cardCvv}
                   onChangeText={(text) => {
@@ -466,7 +468,7 @@ export default function PayNowScreen() {
                       }
                     }
                   }}
-                  placeholder="123"
+                  placeholder={t('payments.cvvPlaceholder')}
                   keyboardType="numeric"
                   secureTextEntry
                 />
@@ -479,10 +481,10 @@ export default function PayNowScreen() {
             </ThemedView>
 
             {/* Billing Address */}
-            <ThemedText weight="bold" className="mb-4 mt-4">Billing Address</ThemedText>
+            <ThemedText weight="bold" className="mb-4 mt-4">{t('payments.billingAddress')}</ThemedText>
             
             <ThemedView className="mb-4">
-              <ThemedText variant="tertiary" size="sm" className="mb-2">Full Name</ThemedText>
+              <ThemedText variant="tertiary" size="sm" className="mb-2">{t('profile.fullName')}</ThemedText>
               <ThemedInput
                 value={newCardForm.billingAddress.fullName}
                 onChangeText={(text) => 
@@ -491,13 +493,13 @@ export default function PayNowScreen() {
                     billingAddress: { ...prev.billingAddress, fullName: text }
                   }))
                 }
-                placeholder="John Doe"
+                placeholder={t('payments.cardholderNamePlaceholder')}
                 autoCapitalize="words"
               />
             </ThemedView>
 
             <ThemedView className="mb-4">
-              <ThemedText variant="tertiary" size="sm" className="mb-2">Address</ThemedText>
+              <ThemedText variant="tertiary" size="sm" className="mb-2">{t('profile.address')}</ThemedText>
               <ThemedInput
                 value={newCardForm.billingAddress.address}
                 onChangeText={(text) => 
@@ -506,14 +508,14 @@ export default function PayNowScreen() {
                     billingAddress: { ...prev.billingAddress, address: text }
                   }))
                 }
-                placeholder="123 Main Street"
+                placeholder={t('profile.streetAddressPlaceholder')}
                 autoCapitalize="words"
               />
             </ThemedView>
 
             <ThemedView className="flex-row space-x-4 mb-4">
               <ThemedView className="flex-1">
-                <ThemedText variant="tertiary" size="sm" className="mb-2">City</ThemedText>
+                <ThemedText variant="tertiary" size="sm" className="mb-2">{t('profile.city')}</ThemedText>
                 <ThemedInput
                   value={newCardForm.billingAddress.city}
                   onChangeText={(text) => 
@@ -522,13 +524,13 @@ export default function PayNowScreen() {
                       billingAddress: { ...prev.billingAddress, city: text }
                     }))
                   }
-                  placeholder="Toronto"
+                  placeholder={t('profile.cityPlaceholder')}
                   autoCapitalize="words"
                 />
               </ThemedView>
               
               <ThemedView className="flex-1">
-                <ThemedText variant="tertiary" size="sm" className="mb-2">Postal Code</ThemedText>
+                <ThemedText variant="tertiary" size="sm" className="mb-2">{t('profile.postalCode')}</ThemedText>
                 <ThemedInput
                   value={newCardForm.billingAddress.postalCode}
                   onChangeText={(text) => 
@@ -537,7 +539,7 @@ export default function PayNowScreen() {
                       billingAddress: { ...prev.billingAddress, postalCode: text.toUpperCase() }
                     }))
                   }
-                  placeholder="M5V 3A1"
+                  placeholder={t('profile.postalCodePlaceholder')}
                   autoCapitalize="characters"
                 />
               </ThemedView>
@@ -557,7 +559,7 @@ export default function PayNowScreen() {
                   <Ionicons name="checkmark" size={12} color="white" style={{ alignSelf: 'center' }} />
                 )}
               </ThemedView>
-              <ThemedText>Save payment method for future use</ThemedText>
+              <ThemedText>{t('payments.savePaymentMethod')}</ThemedText>
             </TouchableOpacity>
           </ThemedCard>
         )}
@@ -571,8 +573,8 @@ export default function PayNowScreen() {
           size="lg"
         >
           {isPaying || isCreatingPaymentMethod 
-            ? 'Processing...' 
-            : `Pay $${(ticket.fineAmount || 0).toFixed(2)}`
+            ? t('payments.processing') 
+            : t('payments.payAmount', { amount: (ticket.fineAmount || 0).toFixed(2) })
           }
         </ThemedButton>
 
@@ -585,7 +587,7 @@ export default function PayNowScreen() {
             style={{ marginRight: 8 }}
           />
           <ThemedText variant="tertiary" size="sm">
-            Secure payment powered by Stripe
+            {t('payments.securePaymentStripe')}
           </ThemedText>
         </ThemedView>
       </ScrollView>

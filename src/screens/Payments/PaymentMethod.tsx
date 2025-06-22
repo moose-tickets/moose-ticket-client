@@ -8,6 +8,7 @@ import { useTicketStackNavigation } from '../../navigation/hooks';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { 
   fetchPaymentMethods, 
@@ -18,6 +19,7 @@ import {
 export default function PaymentMethod() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [cardToDelete, setCardToDelete] = useState<string | null>(null);
 
@@ -34,9 +36,9 @@ export default function PaymentMethod() {
   // Handle errors
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      Alert.alert(t('common.error'), error);
     }
-  }, [error]);
+  }, [error, t]);
 
   const [confirmDialogVisible, setConfirmDialogVisible] = useState(false);
   const [infoDialogVisible, setInfoDialogVisible] = useState(false);
@@ -56,9 +58,8 @@ export default function PaymentMethod() {
 
     if (deletingCard && !deletingCard.isExpired && remainingActive.length === 0) {
       setDialogProps({
-        title: 'Cannot Delete Card',
-        message:
-          'You must have at least one active (non-expired) card on file.',
+        title: t('payments.cannotDeleteCard'),
+        message: t('payments.mustHaveActiveCard'),
         type: 'warning',
       });
       setInfoDialogVisible(true);
@@ -72,7 +73,7 @@ export default function PaymentMethod() {
       setCardToDelete(null);
       setConfirmDialogVisible(false);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to delete payment method');
+      Alert.alert(t('common.error'), error.message || t('payments.deletePaymentMethodFailed'));
       setCardToDelete(null);
       setConfirmDialogVisible(false);
     }
@@ -83,8 +84,8 @@ export default function PaymentMethod() {
       onPress={() => {
         setCardToDelete(id);
         setDialogProps({
-          title: 'Delete Card',
-          message: 'Are you sure you want to delete this card?',
+          title: t('payments.deleteCard'),
+          message: t('payments.confirmDeleteCard'),
           type: 'warning',
         });
         setConfirmDialogVisible(true);
@@ -108,7 +109,7 @@ export default function PaymentMethod() {
     try {
       await dispatch(setDefaultPaymentMethod(id)).unwrap();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to set default payment method');
+      Alert.alert(t('common.error'), error.message || t('payments.setDefaultFailed'));
     }
   };
 
@@ -140,9 +141,9 @@ export default function PaymentMethod() {
   if (loading.fetch && paymentMethods.length === 0) {
     return (
       <AppLayout scrollable={false}>
-        <GoBackHeader screenTitle='Payment Method' />
+        <GoBackHeader screenTitle={t('payments.paymentMethods')} />
         <ThemedView className='flex-1 justify-center items-center'>
-          <ThemedText>Loading payment methods...</ThemedText>
+          <ThemedText>{t('payments.loadingPaymentMethods')}</ThemedText>
         </ThemedView>
       </AppLayout>
     );
@@ -151,7 +152,7 @@ export default function PaymentMethod() {
   return (
     <AppLayout scrollable={false}>
        {/* Header */}
-          <GoBackHeader screenTitle='Payment Method' />
+          <GoBackHeader screenTitle={t('payments.paymentMethods')} />
 
       {paymentMethods.length === 0 ? (
         <ThemedView className='flex-1 justify-center items-center px-4'>
@@ -162,17 +163,17 @@ export default function PaymentMethod() {
             style={{ marginBottom: 16 }}
           />
           <ThemedText size='lg' weight='semibold' className='mb-2 text-center'>
-            No Payment Methods
+            {t('payments.noPaymentMethods')}
           </ThemedText>
           <ThemedText variant='secondary' className='text-center mb-6'>
-            Add a payment method to make payments easier
+            {t('payments.addPaymentMethodDescription')}
           </ThemedText>
           <ThemedButton
             onPress={() => navigation.navigate('AddPaymentMethod')}
             variant='primary'
             size='lg'
           >
-            Add Your First Card
+{t('payments.addFirstCard')}
           </ThemedButton>
         </ThemedView>
       ) : (
@@ -220,7 +221,7 @@ export default function PaymentMethod() {
                     </ThemedText>
                     {item.isExpired && (
                       <ThemedText size='xs' weight='medium' className='text-red-500'>
-                        Expired
+                        {t('payments.expired')}
                       </ThemedText>
                     )}
                   </ThemedView>
@@ -237,7 +238,7 @@ export default function PaymentMethod() {
           variant='secondary'
           size='lg'
         >
-          Add New Card
+{t('payments.addCard')}
         </ThemedButton>
       </ThemedView>
 

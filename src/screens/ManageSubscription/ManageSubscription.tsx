@@ -12,11 +12,13 @@ import {
   reactivateSubscription,
   fetchUsageQuota 
 } from '../../store/slices/subscriptionSlice';
+import { useTranslation } from 'react-i18next';
 
 export default function ManageSubscription() {
   const navigation = useSettingsStackNavigation();
   const { theme } = useTheme();
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Redux state
@@ -34,7 +36,7 @@ export default function ManageSubscription() {
   // Handle errors
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      Alert.alert(t('common.error'), error);
     }
   }, [error]);
 
@@ -42,18 +44,18 @@ export default function ManageSubscription() {
     try {
       await dispatch(cancelSubscription({ cancelAtPeriodEnd: true })).unwrap();
       setShowCancelModal(false);
-      Alert.alert('Success', 'Subscription will be cancelled at the end of the billing period');
+      Alert.alert(t('common.success'), t('subscription.subscriptionCancelledSuccess'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to cancel subscription');
+      Alert.alert(t('common.error'), error.message || t('subscription.cancelSubscriptionFailed'));
     }
   };
 
   const handleReactivateSubscription = async () => {
     try {
       await dispatch(reactivateSubscription()).unwrap();
-      Alert.alert('Success', 'Subscription has been reactivated');
+      Alert.alert(t('common.success'), t('subscription.subscriptionReactivatedSuccess'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reactivate subscription');
+      Alert.alert(t('common.error'), error.message || t('subscription.reactivateSubscriptionFailed'));
     }
   };
 
@@ -75,9 +77,9 @@ export default function ManageSubscription() {
   if (loading.subscription && !currentSubscription) {
     return (
       <AppLayout scrollable={false}>
-        <GoBackHeader screenTitle='Manage Subscription' />
+        <GoBackHeader screenTitle={t('subscription.manageSubscription')} />
         <ThemedView className='flex-1 justify-center items-center'>
-          <ThemedText>Loading subscription...</ThemedText>
+          <ThemedText>{t('subscription.loadingSubscription')}</ThemedText>
         </ThemedView>
       </AppLayout>
     );
@@ -86,20 +88,20 @@ export default function ManageSubscription() {
   if (!currentSubscription) {
     return (
       <AppLayout scrollable={false}>
-        <GoBackHeader screenTitle='Manage Subscription' />
+        <GoBackHeader screenTitle={t('subscription.manageSubscription')} />
         <ThemedView className='flex-1 justify-center items-center px-4'>
           <ThemedText size='lg' weight='semibold' className='mb-4 text-center'>
-            No Active Subscription
+            {t('subscription.noActiveSubscription')}
           </ThemedText>
           <ThemedText variant='secondary' className='text-center mb-6'>
-            Subscribe to unlock premium features and real-time alerts
+            {t('subscription.subscribeToUnlock')}
           </ThemedText>
           <ThemedButton
             variant='primary'
             size='lg'
             onPress={() => navigation.navigate('SubscriptionPlans')}
           >
-            View Plans
+            {t('subscription.viewPlans')}
           </ThemedButton>
         </ThemedView>
       </AppLayout>
@@ -110,7 +112,7 @@ export default function ManageSubscription() {
     <AppLayout scrollable={false}>
       {/* Header */}
       <GoBackHeader
-        screenTitle='Manage Subscription'
+        screenTitle={t('subscription.manageSubscription')}
       />
       <ThemedScrollView className='flex-1 p-5'>
         {/* Current Subscription Card */}
@@ -118,14 +120,14 @@ export default function ManageSubscription() {
           <ThemedView className='flex-row justify-between items-center mb-2'>
             <ThemedText weight='bold' size='lg'>{currentSubscription.plan.name}</ThemedText>
             <ThemedText weight='semibold' style={{ color: theme === 'dark' ? '#10B981' : '#10B981' }}>
-              {formatPrice(currentSubscription.billing.amount, currentSubscription.billing.currency)}/{currentSubscription.billingCycle === 'monthly' ? 'month' : 'year'}
+              {formatPrice(currentSubscription.billing.amount, currentSubscription.billing.currency)}/{currentSubscription.billingCycle === 'monthly' ? t('subscription.month') : t('subscription.year')}
             </ThemedText>
           </ThemedView>
           <ThemedView className='flex-row justify-between items-center mb-3'>
             <ThemedText variant='tertiary'>
               {currentSubscription.cancelAtPeriodEnd 
-                ? `Expires on ${formatDate(currentSubscription.currentPeriodEnd)}`
-                : `Renews on ${formatDate(currentSubscription.currentPeriodEnd)}`
+                ? `${t('subscription.expiresOn')} ${formatDate(currentSubscription.currentPeriodEnd)}`
+                : `${t('subscription.renewsOn')} ${formatDate(currentSubscription.currentPeriodEnd)}`
               }
             </ThemedText>
             <ThemedText 
@@ -146,19 +148,19 @@ export default function ManageSubscription() {
           {/* Usage Quota */}
           {usageQuota && (
             <ThemedView className='mt-4 pt-4 border-t border-gray-200'>
-              <ThemedText weight='semibold' className='mb-2'>Usage This Period:</ThemedText>
+              <ThemedText weight='semibold' className='mb-2'>{t('subscription.usageThisPeriod')}</ThemedText>
               <ThemedView className='space-y-1'>
                 <ThemedView className='flex-row justify-between'>
-                  <ThemedText size='sm'>Tickets:</ThemedText>
-                  <ThemedText size='sm'>{usageQuota.tickets.used}/{usageQuota.tickets.limit === -1 ? 'Unlimited' : usageQuota.tickets.limit}</ThemedText>
+                  <ThemedText size='sm'>{t('subscription.tickets')}</ThemedText>
+                  <ThemedText size='sm'>{usageQuota.tickets.used}/{usageQuota.tickets.limit === -1 ? t('subscription.unlimited') : usageQuota.tickets.limit}</ThemedText>
                 </ThemedView>
                 <ThemedView className='flex-row justify-between'>
-                  <ThemedText size='sm'>Vehicles:</ThemedText>
-                  <ThemedText size='sm'>{usageQuota.vehicles.used}/{usageQuota.vehicles.limit === -1 ? 'Unlimited' : usageQuota.vehicles.limit}</ThemedText>
+                  <ThemedText size='sm'>{t('subscription.vehicles')}</ThemedText>
+                  <ThemedText size='sm'>{usageQuota.vehicles.used}/{usageQuota.vehicles.limit === -1 ? t('subscription.unlimited') : usageQuota.vehicles.limit}</ThemedText>
                 </ThemedView>
                 <ThemedView className='flex-row justify-between'>
-                  <ThemedText size='sm'>Disputes:</ThemedText>
-                  <ThemedText size='sm'>{usageQuota.disputes.used}/{usageQuota.disputes.limit === -1 ? 'Unlimited' : usageQuota.disputes.limit}</ThemedText>
+                  <ThemedText size='sm'>{t('subscription.disputes')}</ThemedText>
+                  <ThemedText size='sm'>{usageQuota.disputes.used}/{usageQuota.disputes.limit === -1 ? t('subscription.unlimited') : usageQuota.disputes.limit}</ThemedText>
                 </ThemedView>
               </ThemedView>
             </ThemedView>
@@ -171,7 +173,7 @@ export default function ManageSubscription() {
           className='mb-4'
           onPress={() => navigation.navigate('SubscriptionPlans')}
         >
-          Change Plan
+          {t('subscription.changePlan')}
         </ThemedButton>
 
         <TouchableOpacity onPress={() => navigation.navigate('BillingHistory')}>
@@ -182,16 +184,16 @@ export default function ManageSubscription() {
               color: theme === 'dark' ? '#22C55E' : '#10472B'
             }}
           >
-            View Billing History
+            {t('subscription.viewBillingHistory')}
           </ThemedText>
         </TouchableOpacity>
 
         {/* Subscription Actions */}
         {currentSubscription.status === 'active' && !currentSubscription.cancelAtPeriodEnd && (
           <>
-            <ThemedText weight='semibold' size='lg' className='mb-2'>Cancel Subscription</ThemedText>
+            <ThemedText weight='semibold' size='lg' className='mb-2'>{t('subscription.cancelSubscription')}</ThemedText>
             <ThemedText variant='secondary' className='mb-4'>
-              You will lose access to premium features after current billing period ends.
+              {t('subscription.loseAccessAfterPeriod')}
             </ThemedText>
             <TouchableOpacity
               className='border border-error py-3 rounded-xl items-center mb-4'
@@ -199,7 +201,7 @@ export default function ManageSubscription() {
               disabled={loading.cancel}
             >
               <ThemedText weight='semibold' style={{ color: theme === 'dark' ? '#EF4444' : '#EF4444' }}>
-                {loading.cancel ? 'Cancelling...' : 'Cancel Subscription'}
+                {loading.cancel ? t('subscription.cancelling') : t('subscription.cancelSubscription')}
               </ThemedText>
             </TouchableOpacity>
           </>
@@ -212,7 +214,7 @@ export default function ManageSubscription() {
             onPress={handleReactivateSubscription}
             disabled={loading.update}
           >
-            {loading.update ? 'Reactivating...' : 'Reactivate Subscription'}
+            {loading.update ? t('subscription.reactivating') : t('subscription.reactivateSubscription')}
           </ThemedButton>
         )}
       </ThemedScrollView>
@@ -222,11 +224,10 @@ export default function ManageSubscription() {
         <ThemedView className='flex-1 justify-center items-center px-6' style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <ThemedCard className='w-full'>
             <ThemedText size='xl' weight='semibold' className='mb-3 text-center' style={{ color: '#EF4444' }}>
-              Cancel Subscription?
+              {t('subscription.cancelSubscriptionConfirm')}
             </ThemedText>
             <ThemedText variant='secondary' className='text-center mb-6'>
-              Are you sure you want to cancel?{'\n'}You'll keep benefits until
-              Jun 01, 2025.
+              {t('subscription.cancelConfirmMessage')}{'\n'}{formatDate(currentSubscription.currentPeriodEnd)}.
             </ThemedText>
 
             <TouchableOpacity
@@ -235,7 +236,7 @@ export default function ManageSubscription() {
               disabled={loading.cancel}
             >
               <ThemedText variant='inverse' weight='semibold'>
-                {loading.cancel ? 'Cancelling...' : 'Yes, Cancel'}
+                {loading.cancel ? t('subscription.cancelling') : t('subscription.yesCancelSubscription')}
               </ThemedText>
             </TouchableOpacity>
 
@@ -249,7 +250,7 @@ export default function ManageSubscription() {
                   color: theme === 'dark' ? '#22C55E' : '#10472B'
                 }}
               >
-                No, Keep Plan
+                {t('subscription.noKeepPlan')}
               </ThemedText>
             </TouchableOpacity>
           </ThemedCard>

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '../../wrappers/layout';
 import Dialog from '../../components/Dialog';
 import { useRoute, RouteProp } from '@react-navigation/native';
@@ -19,18 +20,21 @@ import { ThemedView, ThemedText, ThemedCard, ThemedInput, ThemedButton, ThemedSc
 import { useTheme } from '../../wrappers/ThemeProvider';
 import GoBackHeader from '../../components/GoBackHeader';
 
-const disputeReasons = [
-  'I was not the driver',
-  'Signage was unclear',
-  'Ticket issued in error',
-  'Other',
-];
+// disputeReasons will be localized in component
 
 export default function DisputeForm() {
   const navigation = useTicketStackNavigation();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<TicketStackParamList, 'DisputeForm'>>();
   const ticketId = route.params.ticketId;
+  
+  const disputeReasons = [
+    t('dispute.reasonNotDriver'),
+    t('dispute.reasonUnclearSignage'),
+    t('dispute.reasonTicketError'),
+    t('dispute.reasonOther'),
+  ];
 
   const [selectedReason, setSelectedReason] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -47,7 +51,7 @@ export default function DisputeForm() {
   const handlePickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission denied', 'Media library access is required.');
+      Alert.alert(t('dispute.permissionDenied'), t('dispute.mediaLibraryRequired'));
       return;
     }
 
@@ -71,9 +75,8 @@ export default function DisputeForm() {
   const handleContinue = () => {
   if (!selectedReason || !comments.trim()) {
     setDialogProps({
-      title: "Missing Information",
-      message:
-        "Please select a dispute reason and provide additional comments to proceed.",
+      title: t('dispute.missingInformation'),
+      message: t('dispute.selectReasonAndComments'),
       type: "info",
     });
     setDialogVisible(true);
@@ -82,9 +85,8 @@ export default function DisputeForm() {
 
   // Show success dialog (don't navigate yet)
   setDialogProps({
-    title: "Dispute Submitted",
-    message:
-      "Your dispute has been submitted successfully and is now under review.",
+    title: t('dispute.disputeSubmitted'),
+    message: t('dispute.disputeSubmittedSuccess'),
     type: "success",
   });
   setDialogVisible(true);
@@ -93,50 +95,50 @@ export default function DisputeForm() {
 const messageComponent = () => dialogProps.type === 'success' ? (
   <ThemedView className='flex-column items-center'>
     <ThemedText size='sm' className='ml-2'>
-      <ThemedText weight='bold'>Reference: #DSP-789</ThemedText>
+      <ThemedText weight='bold'>{t('dispute.reference')}: #DSP-789</ThemedText>
     </ThemedText>
     <ThemedText size='sm' className='ml-2 text-center'>
-     We will let you know the outcome when the review is complete.
+     {t('dispute.reviewComplete')}
     </ThemedText>
   </ThemedView>
-) : 'Please select a dispute reason and provide additional comments to proceed.';
+) : t('dispute.selectReasonAndComments');
 
 
   return (
     <AppLayout scrollable={false}>
       <ThemedScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
-        <GoBackHeader screenTitle='File a Dispute' />
+        <GoBackHeader screenTitle={t('dispute.fileDispute')} />
 
         {/* Step Indicator */}
         <ThemedView className='px-4 mb-4'>
-          <ThemedText size='sm' variant='tertiary'>Step 1 of 3</ThemedText>
+          <ThemedText size='sm' variant='tertiary'>{t('dispute.step1of3')}</ThemedText>
           <ThemedText weight='bold' size='base' className='mt-1'>
-            Ticket Details & Reason
+            {t('dispute.ticketDetailsReason')}
           </ThemedText>
         </ThemedView>
 
         {/* Ticket Summary */}
         <ThemedCard className='mx-4 mb-4'>
-          <ThemedText variant='tertiary' size='sm'>Ticket #</ThemedText>
+          <ThemedText variant='tertiary' size='sm'>{t('tickets.ticketNumber')}</ThemedText>
           <ThemedText weight='semibold' className='mb-2'>12345678</ThemedText>
-          <ThemedText variant='tertiary' size='sm'>Date & Location</ThemedText>
+          <ThemedText variant='tertiary' size='sm'>{t('dispute.dateLocation')}</ThemedText>
           <ThemedText size='sm' className='mb-2'>
             May 30, 2025 · Toronto
           </ThemedText>
-          <ThemedText variant='tertiary' size='sm'>Amount</ThemedText>
+          <ThemedText variant='tertiary' size='sm'>{t('tickets.ticketAmount')}</ThemedText>
           <ThemedText weight='semibold'>$75.00</ThemedText>
         </ThemedCard>
 
         {/* Reason Selector */}
         <ThemedView className='mx-4 mb-4'>
-          <ThemedText variant='tertiary' size='sm' className='mb-2'>Dispute Reason</ThemedText>
+          <ThemedText variant='tertiary' size='sm' className='mb-2'>{t('dispute.disputeReason')}</ThemedText>
           <TouchableOpacity
             onPress={() => setShowDropdown(!showDropdown)}
             className='border border-border rounded-xl px-4 py-3 bg-background'
           >
             <ThemedText size='sm'>
-              {selectedReason || 'Select a reason'}
+              {selectedReason || t('dispute.selectReason')}
             </ThemedText>
           </TouchableOpacity>
           {showDropdown && (
@@ -160,11 +162,11 @@ const messageComponent = () => dialogProps.type === 'success' ? (
         {/* Comments */}
         <ThemedView className='mx-4 mb-4'>
           <ThemedText variant='tertiary' size='sm' className='mb-2'>
-            Additional Comments
+            {t('dispute.additionalComments')}
           </ThemedText>
           <ThemedInput
             multiline
-            placeholder='Explain your dispute...'
+            placeholder={t('dispute.explainDispute')}
             value={comments}
             onChangeText={setComments}
             className='min-h-[100px]'
@@ -173,7 +175,7 @@ const messageComponent = () => dialogProps.type === 'success' ? (
 
         {/* Upload Section */}
         <ThemedView className='mx-4 mb-6'>
-          <ThemedText variant='tertiary' size='sm' className='mb-2'>Upload Photos</ThemedText>
+          <ThemedText variant='tertiary' size='sm' className='mb-2'>{t('dispute.uploadPhotos')}</ThemedText>
 
           <TouchableOpacity
             onPress={handlePickImages}
@@ -184,7 +186,7 @@ const messageComponent = () => dialogProps.type === 'success' ? (
               size={28}
               color={theme === 'dark' ? '#94A3B8' : '#9CA3AF'}
             />
-            <ThemedText variant='tertiary' size='sm' className='mt-2'>Add image(s)</ThemedText>
+            <ThemedText variant='tertiary' size='sm' className='mt-2'>{t('dispute.addImages')}</ThemedText>
           </TouchableOpacity>
 
           {imageUris.length > 0 && (
@@ -215,7 +217,7 @@ const messageComponent = () => dialogProps.type === 'success' ? (
             variant='primary'
             size='lg'
           >
-            Continue
+            {t('common.next')}
           </ThemedButton>
         </ThemedView>
       </ThemedScrollView>

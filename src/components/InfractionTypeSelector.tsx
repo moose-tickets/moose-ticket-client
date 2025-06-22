@@ -10,6 +10,7 @@ import {
   ThemedCard
 } from './ThemedComponents';
 import { useTheme } from '../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 interface InfractionTypeSelectorProps {
   selectedInfractionType?: InfractionType | null;
@@ -28,6 +29,8 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const { theme } = useTheme();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language as 'en' | 'fr' | 'ar' | 'es';
   const {
     filteredInfractionTypes,
     loading,
@@ -36,6 +39,11 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
     filters,
     setInfractionTypeFilter,
   } = useInfractionTypes();
+
+  // Helper function to get localized text
+  const getLocalizedText = (textObj: { en: string; fr: string; ar: string; es?: string }) => {
+    return textObj[currentLanguage] || textObj.en;
+  };
 
 
 
@@ -60,10 +68,10 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
           />
           <ThemedView className='flex-1'>
             <ThemedText weight='semibold' size='sm'>
-              {item.type}
+              {getLocalizedText(item.type)}
             </ThemedText>
             <ThemedText variant='secondary' size='xs' className='mt-1'>
-              Code: {item.code}
+              Code: {item.code} • {item.municipalityId?.city || ''}
             </ThemedText>
           </ThemedView>
           <ThemedView className='items-end'>
@@ -96,7 +104,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
           numberOfLines={2}
           className='leading-4 text-left w-full'
         >
-          {item.description}
+          {getLocalizedText(item.violation)}
         </ThemedText>
       </ThemedButton>
     </ThemedCard>
@@ -178,7 +186,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
               </ThemedText>
               <ThemedView className='flex-1'>
                 <ThemedText weight='medium' size='sm'>
-                  {selectedInfractionType.type}
+                  {getLocalizedText(selectedInfractionType.type)}
                 </ThemedText>
                 <ThemedText variant='secondary' size='xs' className='mt-1'>
                     {selectedInfractionType.code}
@@ -207,7 +215,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
         <SafeAreaView className='flex-1 bg-background'>
           <ThemedView className='flex-row justify-between items-center p-4 bg-background border-b border-border'>
             <ThemedText weight='semibold' size='lg'>
-              Select Violation Type
+              {t('tickets.selectViolationType')}
             </ThemedText>
             <ThemedButton
               variant='ghost'
@@ -226,12 +234,12 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
 
           {loading ? (
             <ThemedView className='flex-1 justify-center items-center p-5'>
-              <ThemedText>Loading violation types...</ThemedText>
+              <ThemedText>{t('common.loading')}</ThemedText>
             </ThemedView>
           ) : error ? (
             <ThemedView className='flex-1 justify-center items-center p-5'>
               <ThemedText variant='error' className='text-center mb-4'>
-                Error: {error}
+                {t('common.error')}: {error}
               </ThemedText>
             </ThemedView>
           ) : (

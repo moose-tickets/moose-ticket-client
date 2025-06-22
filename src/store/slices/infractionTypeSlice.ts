@@ -3,17 +3,28 @@ import { infractionTypeService } from '../../services/infractionTypeService';
 
 export interface InfractionType {
   _id: string;
-  id: number;
-  code: string;
-  type: string;
-  description: string;
+  code: string | number;
+  type: {
+    en: string;
+    fr: string;
+    ar: string;
+  };
+  violation: {
+    en: string;
+    fr: string;
+    ar: string;
+  };
   icon: string;
   category: 'stationary' | 'moving';
   baseFine: number;
   points: number;
   isActive: boolean;
-  province?: string;
-  municipality?: string;
+  municipalityId: {
+    _id: string;
+    city: string;
+    municipality: string;
+    state_province: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -101,9 +112,15 @@ const filterInfractionTypes = (types: InfractionType[], filters: InfractionTypeS
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       return (
-        type.code.toLowerCase().includes(searchTerm) ||
-        type.type.toLowerCase().includes(searchTerm) ||
-        type.description.toLowerCase().includes(searchTerm)
+        type.code.toString().toLowerCase().includes(searchTerm) ||
+        type.type.en.toLowerCase().includes(searchTerm) ||
+        type.type.fr.toLowerCase().includes(searchTerm) ||
+        type.type.ar.toLowerCase().includes(searchTerm) ||
+        type.violation.en.toLowerCase().includes(searchTerm) ||
+        type.violation.fr.toLowerCase().includes(searchTerm) ||
+        type.violation.ar.toLowerCase().includes(searchTerm) ||
+        type.municipalityId?.city.toLowerCase().includes(searchTerm) ||
+        type.municipalityId?.municipality.toLowerCase().includes(searchTerm)
       );
     }
     
@@ -184,10 +201,10 @@ export const selectInfractionTypesByCategory = (category: string) =>
   (state: { infractionTypes: InfractionTypeState }) => 
     state.infractionTypes.infractionTypes.filter(type => type.category === category && type.isActive);
 
-export const selectInfractionTypeByCode = (code: string) => 
+export const selectInfractionTypeByCode = (code: string | number) => 
   (state: { infractionTypes: InfractionTypeState }) => 
-    state.infractionTypes.infractionTypes.find(type => type.code === code);
+    state.infractionTypes.infractionTypes.find(type => type.code.toString() === code.toString());
 
-export const selectInfractionTypeById = (id: number) => 
+export const selectInfractionTypeById = (id: string) => 
   (state: { infractionTypes: InfractionTypeState }) => 
-    state.infractionTypes.infractionTypes.find(type => type.id === id);
+    state.infractionTypes.infractionTypes.find(type => type._id === id);
