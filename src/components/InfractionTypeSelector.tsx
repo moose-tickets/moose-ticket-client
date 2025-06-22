@@ -7,8 +7,7 @@ import {
   ThemedView,
   ThemedText,
   ThemedButton,
-  ThemedCard,
-  ThemedScrollView,
+  ThemedCard
 } from './ThemedComponents';
 import { useTheme } from '../wrappers/ThemeProvider';
 
@@ -17,6 +16,7 @@ interface InfractionTypeSelectorProps {
   onSelect: (infractionType: InfractionType) => void;
   placeholder?: string;
   style?: any;
+  showAmount?: boolean;
 }
 
 export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
@@ -24,6 +24,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
   onSelect,
   placeholder = 'Select violation type',
   style,
+  showAmount = true,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const { theme } = useTheme();
@@ -36,19 +37,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
     setInfractionTypeFilter,
   } = useInfractionTypes();
 
-  const getIconForType = (iconName: string) => {
-    const iconMap: { [key: string]: string } = {
-      'clock-outline': '⏰',
-      'car-brake-parking': '🅿️',
-      speedometer: '🏃',
-      'traffic-light': '🚦',
-      'fire-hydrant': '🚒',
-      'wheelchair-accessibility': '♿',
-      'cellphone-off': '📵',
-      seatbelt: '🔗',
-    };
-    return iconMap[iconName] || '📋';
-  };
+
 
   const handleSelect = (infractionType: InfractionType) => {
     onSelect(infractionType);
@@ -92,20 +81,20 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
                 {item.category}
               </ThemedText>
             </ThemedView>
-            <ThemedText
+            {showAmount && <ThemedText
               weight='semibold'
               size='xs'
               style={{ color: '#e74c3c' }}
             >
               ${item.baseFine}
-            </ThemedText>
+            </ThemedText>}
           </ThemedView>
         </ThemedView>
         <ThemedText
           variant='secondary'
           size='xs'
           numberOfLines={2}
-          className='leading-4'
+          className='leading-4 text-left w-full'
         >
           {item.description}
         </ThemedText>
@@ -192,8 +181,8 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
                   {selectedInfractionType.type}
                 </ThemedText>
                 <ThemedText variant='secondary' size='xs' className='mt-1'>
-                  {selectedInfractionType.code} • $
-                  {selectedInfractionType.baseFine}
+                    {selectedInfractionType.code}
+                    {showAmount && ` • $${selectedInfractionType.baseFine}`}
                 </ThemedText>
               </ThemedView>
             </ThemedView>

@@ -87,6 +87,7 @@ export default function TicketListScreen() {
   };
 
   console.log('Tickets:', tickets.length);
+  console.log('Tickets:', filters);
 
   // Render loading footer
   const renderFooter = () => {
@@ -131,10 +132,10 @@ export default function TicketListScreen() {
             <Ionicons name='filter' size={20} color={theme === 'dark' ? '#FFFFFF' : '#10472B'} />
           </TouchableOpacity>
         </ThemedView>
-        {/* <TicketFilter
+        <TicketFilter
           visible={isFilterVisible}
           onClose={() => setFilterVisible(false)}
-        /> */}
+        />
 
         {/* Ticket List */}
         <FlatList
