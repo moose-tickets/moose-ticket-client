@@ -31,7 +31,7 @@ export default function AddCard() {
   const dispatch = useAppDispatch();
 
   // Redux state
-  const loading = useAppSelector(state => state.payments.loading);
+  const isCreatingPaymentMethod = useAppSelector(state => state.payments.isCreatingPaymentMethod);
 
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -114,7 +114,7 @@ export default function AddCard() {
   };
 
   const handleAddCard = async () => {
-    if (loading.create) return;
+    if (isCreatingPaymentMethod) return;
 
     setValidationErrors({});
 
@@ -299,9 +299,9 @@ export default function AddCard() {
               variant='primary'
               size='lg'
               className='mb-3'
-              disabled={loading.create}
+              disabled={isCreatingPaymentMethod}
             >
-              {loading.create ? t('payments.addingCard') : t('payments.addCard')}
+              {isCreatingPaymentMethod ? t('payments.addingCard') : t('payments.addCard')}
             </ThemedButton>
 
             <ThemedButton

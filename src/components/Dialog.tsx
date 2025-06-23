@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from '../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 import { ThemedView, ThemedText } from './ThemedComponents';
 
 type DialogType = "success" | "error" | "info" | "warning";
@@ -47,12 +48,15 @@ export default function Dialog({
   message='',
   onClose,
   onConfirm,
-  confirmText = "OK",
+  confirmText,
   cancelText,
   messageComponent
 }: DialogProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const icon = getIconConfig(type, theme);
+  
+  const defaultConfirmText = confirmText || t('common.ok');
 
   return (
     <Modal transparent animationType="fade" visible={visible}>
@@ -81,7 +85,7 @@ export default function Dialog({
                 onClose();
               }}
             >
-              <ThemedText weight="semibold" className="text-primary">{confirmText}</ThemedText>
+              <ThemedText weight="semibold" className="text-primary">{defaultConfirmText}</ThemedText>
             </TouchableOpacity>
           </ThemedView>
         </ThemedView>

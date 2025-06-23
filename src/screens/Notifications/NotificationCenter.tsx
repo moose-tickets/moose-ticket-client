@@ -12,14 +12,14 @@ import { useNotificationsStackNavigation } from '../../navigation/hooks';
 import { ThemedView, ThemedText, ThemedCard } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
 
-// notifications data moved inside component for translation access
+
 
 
 export default function NotificationCenter() {
   const navigation = useNotificationsStackNavigation();
   const { theme, presets } = useTheme();
   const { t } = useTranslation();
-  const [tab, setTab] = useState('All');
+  const [tab, setTab] = useState('all');
   
   const notifications = [
     {
@@ -50,6 +50,17 @@ export default function NotificationCenter() {
       read: true,
     },
   ];
+  // Local state
+  const tabs = [
+    {
+      label: t('notifications.all'),
+      value:'all' 
+    },
+    {
+      label: t('notifications.unread'),
+      value:'unread' 
+    }
+  ]
 
   return (
     <ThemedView className='flex-1 pt-14 px-4'>
@@ -68,19 +79,18 @@ export default function NotificationCenter() {
 
       {/* Tabs */}
       <ThemedView variant='secondary' className='flex-row rounded-full mb-4'>
-        {[t('notifications.all'), t('notifications.unread')].map((label, index) => {
-          const tabValue = ['All', 'Unread'][index];
+        {tabs.map(({label, value}) => {
           return (
             <TouchableOpacity
-              key={tabValue}
-              onPress={() => setTab(tabValue)}
+              key={label}
+              onPress={() => setTab(value)}
               className={`flex-1 py-2 rounded-full items-center ${
-                tab === tabValue ? 'bg-primary' : ''
+                tab === value ? 'bg-primary' : ''
               }`}
             >
               <ThemedText
                 weight='medium'
-                variant={tab === tabValue ? 'inverse' : 'primary'}
+                variant={tab === value ? 'inverse' : 'primary'}
               >
                 {label}
               </ThemedText>

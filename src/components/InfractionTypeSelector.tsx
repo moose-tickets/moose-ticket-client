@@ -23,7 +23,7 @@ interface InfractionTypeSelectorProps {
 export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
   selectedInfractionType,
   onSelect,
-  placeholder = 'Select violation type',
+  placeholder,
   style,
   showAmount = true,
 }) => {
@@ -134,7 +134,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
                 : '#E18743',
             }}
           >
-            All
+            {t('tickets.all')}
           </ThemedText>
         </ThemedButton>
         {categories.map((category) => (
@@ -157,7 +157,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
                     : '#E18743',
               }}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {t(`tickets.${category}`)}
             </ThemedText>
           </ThemedButton>
         ))}
@@ -196,7 +196,7 @@ export const InfractionTypeSelector: React.FC<InfractionTypeSelectorProps> = ({
             </ThemedView>
           ) : (
             <ThemedText variant='tertiary' className='flex-1'>
-              {placeholder}
+              {placeholder || t('tickets.selectViolationType')}
             </ThemedText>
           )}
           <Ionicons

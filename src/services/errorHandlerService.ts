@@ -213,25 +213,39 @@ class ErrorHandlerService {
         
         // Don't retry on the last attempt
         if (attempt === config.maxRetries) {
+          // Log final failure after all retries exhausted
+          console.error(`Request failed after ${config.maxRetries + 1} attempts:`, {
+            endpoint: context.endpoint,
+            method: context.method,
+            error: this.getErrorCode(lastError),
+            finalError: lastError.message,
+          });
           break;
         }
 
         // Check if error is retryable
         if (!config.retryCondition!(lastError)) {
+          // Log non-retryable error
+          console.error(`Request failed (non-retryable error):`, {
+            endpoint: context.endpoint,
+            method: context.method,
+            error: this.getErrorCode(lastError),
+            message: lastError.message,
+          });
           break;
         }
 
         // Calculate delay for next retry
         const delay = this.calculateDelay(attempt, config);
         
-        // Log retry attempt
-        // if(attempt === (config.maxRetries + 1)){
-          console.warn(`Request failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${delay}ms:`, {
+        // Only log retry attempts in development mode for debugging
+        if (__DEV__ && console.debug) {
+          console.debug(`Retrying request (attempt ${attempt + 1}/${config.maxRetries + 1}) in ${delay}ms:`, {
             endpoint: context.endpoint,
             method: context.method,
             error: this.getErrorCode(lastError),
           });
-        // }
+        }
 
         // Call retry callback if provided
         if (config.onRetry) {

@@ -1,16 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import subscriptionService from '../../services/subscriptionService';
 
 // Types
 export interface SubscriptionPlan {
   _id: string;
-  name: string;
-  description: string;
+  name: any; // Support multiple languages
+  description: {[key: string]: string};
   price: {
     monthly: number;
     annually: number;
     currency: string;
   };
-  features: string[];
+  features: {[key: string]: string}[];
   limits: {
     maxTickets: number;
     maxVehicles: number;
@@ -32,25 +33,38 @@ export interface UserSubscription {
   billingCycle: 'monthly' | 'annually';
   currentPeriodStart: string;
   currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
+  cancelAtPeriodEnd?: boolean;
+  autoRenew?: boolean;
   cancelledAt?: string;
+  cancelationReason?: string;
   trialStart?: string;
   trialEnd?: string;
   stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
   paymentMethodId?: string;
-  usage: {
-    tickets: number;
-    vehicles: number;
-    disputes: number;
-    lastUpdated: string;
+  priceAtSubscription: number;
+  usage?: {
+    currentPeriod?: {
+      eventsCreated: number;
+      ticketsSold: number;
+      emailsSent: number;
+      smsSent: number;
+      lastUpdated: string;
+    };
+    historical?: {
+      totalEventsCreated: number;
+      totalTicketsSold: number;
+      totalEmailsSent: number;
+      totalSmsSent: number;
+    };
   };
-  billing: {
+  billing?: {
     nextBillingDate: string;
     lastBillingDate?: string;
     amount: number;
     currency: string;
   };
-  metadata: Record<string, any>;
+  metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +129,14 @@ interface SubscriptionState {
   currentSubscription: UserSubscription | null;
   billingHistory: BillingHistory[];
   usageQuota: UsageQuota | null;
+  analytics: any;
+  usageAnalytics: any;
+  promoCodeValidation: {
+    isValid: boolean;
+    discount?: number;
+    code?: string;
+    error?: string;
+  };
   loading: {
     plans: boolean;
     subscription: boolean;
@@ -122,6 +144,9 @@ interface SubscriptionState {
     usage: boolean;
     update: boolean;
     cancel: boolean;
+    upgrade: boolean;
+    promoValidation: boolean;
+    analytics: boolean;
   };
   error: string | null;
   selectedPlan: SubscriptionPlan | null;
@@ -138,6 +163,14 @@ const initialState: SubscriptionState = {
   currentSubscription: null,
   billingHistory: [],
   usageQuota: null,
+  analytics: null,
+  usageAnalytics: null,
+  promoCodeValidation: {
+    isValid: false,
+    discount: undefined,
+    code: undefined,
+    error: undefined,
+  },
   loading: {
     plans: false,
     subscription: false,
@@ -145,6 +178,9 @@ const initialState: SubscriptionState = {
     usage: false,
     update: false,
     cancel: false,
+    upgrade: false,
+    promoValidation: false,
+    analytics: false,
   },
   error: null,
   selectedPlan: null,
@@ -160,34 +196,26 @@ const initialState: SubscriptionState = {
 export const fetchSubscriptionPlans = createAsyncThunk(
   'subscriptions/fetchPlans',
   async () => {
-    const response = await fetch('/api/subscriptions/plans', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch subscription plans');
+    const result = await subscriptionService.getSubscriptionPlans();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch subscription plans');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
 export const fetchCurrentSubscription = createAsyncThunk(
   'subscriptions/fetchCurrent',
   async () => {
-    const response = await fetch('/api/subscriptions/current', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch current subscription');
+    const result = await subscriptionService.getCurrentSubscription();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch current subscription');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
@@ -198,150 +226,177 @@ export const createSubscription = createAsyncThunk(
     billingCycle: 'monthly' | 'annually';
     paymentMethodId: string;
     trialDays?: number;
+    billingEmail?: string;
+    promoCode?: string;
   }) => {
-    const response = await fetch('/api/subscriptions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(data),
+    const result = await subscriptionService.createSubscription({
+      planId: data.planId,
+      paymentMethodId: data.paymentMethodId,
+      billingEmail: data.billingEmail,
+      promoCode: data.promoCode,
+      metadata: {
+        billingCycle: data.billingCycle,
+        trialDays: data.trialDays
+      }
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to create subscription');
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to create subscription');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
 export const updateSubscription = createAsyncThunk(
   'subscriptions/update',
   async (data: {
+    subscriptionId: string;
     planId?: string;
     billingCycle?: 'monthly' | 'annually';
     paymentMethodId?: string;
+    billingEmail?: string;
   }) => {
-    const response = await fetch('/api/subscriptions/current', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(data),
+    const result = await subscriptionService.updateSubscription(data.subscriptionId, {
+      planId: data.planId,
+      paymentMethodId: data.paymentMethodId,
+      billingEmail: data.billingEmail,
+      metadata: data.billingCycle ? { billingCycle: data.billingCycle } : undefined
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to update subscription');
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to update subscription');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
 export const cancelSubscription = createAsyncThunk(
   'subscriptions/cancel',
-  async (data: { cancelAtPeriodEnd: boolean; reason?: string }) => {
-    const response = await fetch('/api/subscriptions/current/cancel', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to cancel subscription');
+  async (data: { subscriptionId: string; cancelAtPeriodEnd: boolean; reason?: string }) => {
+    const result = await subscriptionService.cancelSubscription(
+      data.subscriptionId,
+      data.reason,
+      data.cancelAtPeriodEnd
+    );
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to cancel subscription');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
 export const reactivateSubscription = createAsyncThunk(
   'subscriptions/reactivate',
-  async () => {
-    const response = await fetch('/api/subscriptions/current/reactivate', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to reactivate subscription');
+  async (subscriptionId: string) => {
+    const result = await subscriptionService.resumeSubscription(subscriptionId);
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to reactivate subscription');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
 export const fetchBillingHistory = createAsyncThunk(
   'subscriptions/fetchBillingHistory',
-  async (params: { page?: number; limit?: number } = {}, { getState }) => {
-    const state = getState() as any;
-    const currentSubscription = state.subscriptions.currentSubscription;
+  async (params: { page?: number; limit?: number; dateFrom?: string; dateTo?: string } = {}) => {
+    const result = await subscriptionService.getBillingHistory(params);
     
-    if (!currentSubscription) {
-      throw new Error('No active subscription found');
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch billing history');
     }
-
-    const queryParams = new URLSearchParams({
-      page: (params.page || 1).toString(),
-      limit: (params.limit || 20).toString(),
-    });
-
-    const response = await fetch(`/api/subscriptions/${currentSubscription._id}/billing?${queryParams}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch billing history');
-    }
-
-    const data = await response.json();
-    return data.data; // Extract the data from the response
+    
+    return result.data;
   }
 );
 
 export const fetchUsageQuota = createAsyncThunk(
   'subscriptions/fetchUsage',
   async () => {
-    const response = await fetch('/api/subscriptions/usage', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch usage quota');
+    const result = await subscriptionService.getQuotas();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch usage quota');
     }
-
-    return response.json();
+    
+    return result.data;
   }
 );
 
 export const updatePaymentMethod = createAsyncThunk(
   'subscriptions/updatePaymentMethod',
-  async (paymentMethodId: string) => {
-    const response = await fetch('/api/subscriptions/current/payment-method', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify({ paymentMethodId }),
+  async (data: { subscriptionId: string; paymentMethodId: string }) => {
+    const result = await subscriptionService.updateSubscription(data.subscriptionId, {
+      paymentMethodId: data.paymentMethodId
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to update payment method');
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to update payment method');
     }
+    
+    return result.data;
+  }
+);
 
-    return response.json();
+// Add new thunks for comprehensive subscription management
+export const upgradeSubscription = createAsyncThunk(
+  'subscriptions/upgrade',
+  async (data: { subscriptionId: string; newPlanId: string; promoCode?: string }) => {
+    const result = await subscriptionService.upgradeSubscription(
+      data.subscriptionId,
+      data.newPlanId,
+      data.promoCode
+    );
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to upgrade subscription');
+    }
+    
+    return result.data;
+  }
+);
+
+export const validatePromoCode = createAsyncThunk(
+  'subscriptions/validatePromo',
+  async (data: { promoCode: string; planId?: string }) => {
+    const result = await subscriptionService.validatePromoCode(data.promoCode, data.planId);
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to validate promo code');
+    }
+    
+    return result.data;
+  }
+);
+
+export const fetchSubscriptionAnalytics = createAsyncThunk(
+  'subscriptions/fetchAnalytics',
+  async () => {
+    const result = await subscriptionService.getSubscriptionAnalytics();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch subscription analytics');
+    }
+    
+    return result.data;
+  }
+);
+
+export const fetchUsageAnalytics = createAsyncThunk(
+  'subscriptions/fetchUsageAnalytics',
+  async (timeRange?: string) => {
+    const result = await subscriptionService.getUsageAnalytics(timeRange);
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch usage analytics');
+    }
+    
+    return result.data;
   }
 );
 
@@ -386,7 +441,8 @@ const subscriptionSlice = createSlice({
       })
       .addCase(fetchSubscriptionPlans.fulfilled, (state, action) => {
         state.loading.plans = false;
-        state.plans = action.payload;
+        // Handle both old and new response formats
+        state.plans = action.payload.plans || action.payload || [];
       })
       .addCase(fetchSubscriptionPlans.rejected, (state, action) => {
         state.loading.plans = false;
@@ -400,7 +456,8 @@ const subscriptionSlice = createSlice({
       })
       .addCase(fetchCurrentSubscription.fulfilled, (state, action) => {
         state.loading.subscription = false;
-        state.currentSubscription = action.payload;
+        // Handle both old and new response formats
+        state.currentSubscription = action.payload.subscription || action.payload;
       })
       .addCase(fetchCurrentSubscription.rejected, (state, action) => {
         state.loading.subscription = false;
@@ -414,7 +471,8 @@ const subscriptionSlice = createSlice({
       })
       .addCase(createSubscription.fulfilled, (state, action) => {
         state.loading.update = false;
-        state.currentSubscription = action.payload;
+        // Handle both old and new response formats
+        state.currentSubscription = action.payload.subscription || action.payload;
         state.selectedPlan = null;
       })
       .addCase(createSubscription.rejected, (state, action) => {
@@ -429,7 +487,8 @@ const subscriptionSlice = createSlice({
       })
       .addCase(updateSubscription.fulfilled, (state, action) => {
         state.loading.update = false;
-        state.currentSubscription = action.payload;
+        // Handle both old and new response formats
+        state.currentSubscription = action.payload.subscription || action.payload;
         state.isUpgrading = false;
         state.isDowngrading = false;
       })
@@ -513,6 +572,74 @@ const subscriptionSlice = createSlice({
       .addCase(updatePaymentMethod.rejected, (state, action) => {
         state.loading.update = false;
         state.error = action.error.message || 'Failed to update payment method';
+      })
+      
+      // Upgrade subscription
+      .addCase(upgradeSubscription.pending, (state) => {
+        state.loading.upgrade = true;
+        state.error = null;
+      })
+      .addCase(upgradeSubscription.fulfilled, (state, action) => {
+        state.loading.upgrade = false;
+        state.currentSubscription = action.payload;
+        state.isUpgrading = false;
+      })
+      .addCase(upgradeSubscription.rejected, (state, action) => {
+        state.loading.upgrade = false;
+        state.error = action.error.message || 'Failed to upgrade subscription';
+        state.isUpgrading = false;
+      })
+      
+      // Validate promo code
+      .addCase(validatePromoCode.pending, (state) => {
+        state.loading.promoValidation = true;
+        state.promoCodeValidation.error = undefined;
+      })
+      .addCase(validatePromoCode.fulfilled, (state, action) => {
+        state.loading.promoValidation = false;
+        state.promoCodeValidation = {
+          isValid: true,
+          discount: action.payload.discount,
+          code: action.payload.code,
+          error: undefined,
+        };
+      })
+      .addCase(validatePromoCode.rejected, (state, action) => {
+        state.loading.promoValidation = false;
+        state.promoCodeValidation = {
+          isValid: false,
+          discount: undefined,
+          code: undefined,
+          error: action.error.message || 'Failed to validate promo code',
+        };
+      })
+      
+      // Fetch subscription analytics
+      .addCase(fetchSubscriptionAnalytics.pending, (state) => {
+        state.loading.analytics = true;
+        state.error = null;
+      })
+      .addCase(fetchSubscriptionAnalytics.fulfilled, (state, action) => {
+        state.loading.analytics = false;
+        state.analytics = action.payload;
+      })
+      .addCase(fetchSubscriptionAnalytics.rejected, (state, action) => {
+        state.loading.analytics = false;
+        state.error = action.error.message || 'Failed to fetch subscription analytics';
+      })
+      
+      // Fetch usage analytics
+      .addCase(fetchUsageAnalytics.pending, (state) => {
+        state.loading.analytics = true;
+        state.error = null;
+      })
+      .addCase(fetchUsageAnalytics.fulfilled, (state, action) => {
+        state.loading.analytics = false;
+        state.usageAnalytics = action.payload;
+      })
+      .addCase(fetchUsageAnalytics.rejected, (state, action) => {
+        state.loading.analytics = false;
+        state.error = action.error.message || 'Failed to fetch usage analytics';
       });
   },
 });

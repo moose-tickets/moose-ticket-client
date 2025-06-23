@@ -42,50 +42,7 @@ interface DisputeFormScreenParams {
   ticketId: string;
 }
 
-const DISPUTE_REASONS = [
-  {
-    id: 'incorrect_location',
-    title: 'Incorrect Location',
-    description: 'The violation did not occur at the specified location',
-    icon: 'location-outline',
-  },
-  {
-    id: 'incorrect_date_time',
-    title: 'Incorrect Date/Time',
-    description: 'The date or time of the violation is wrong',
-    icon: 'time-outline',
-  },
-  {
-    id: 'vehicle_not_owned',
-    title: 'Vehicle Not Owned',
-    description: 'I did not own the vehicle at the time of violation',
-    icon: 'car-outline',
-  },
-  {
-    id: 'emergency_situation',
-    title: 'Emergency Situation',
-    description: 'The violation occurred due to an emergency',
-    icon: 'medical-outline',
-  },
-  {
-    id: 'signs_not_visible',
-    title: 'Signs Not Visible',
-    description: 'Traffic signs were obscured or missing',
-    icon: 'eye-off-outline',
-  },
-  {
-    id: 'technical_error',
-    title: 'Technical Error',
-    description: 'Camera or equipment malfunction',
-    icon: 'construct-outline',
-  },
-  {
-    id: 'other',
-    title: 'Other',
-    description: 'Another reason not listed above',
-    icon: 'ellipsis-horizontal-outline',
-  },
-];
+// Dispute reasons will be created using translation function inside component
 
 export default function DisputeFormScreen() {
   const navigation = useNavigation();
@@ -95,6 +52,51 @@ export default function DisputeFormScreen() {
   const dispatch = useAppDispatch();
   
   const ticketId = route.params.ticketId;
+  
+  const DISPUTE_REASONS = [
+    {
+      id: 'incorrect_location',
+      title: t('dispute.incorrectLocation'),
+      description: t('dispute.incorrectLocationDesc'),
+      icon: 'location-outline',
+    },
+    {
+      id: 'incorrect_date_time',
+      title: t('dispute.incorrectDateTime'),
+      description: t('dispute.incorrectDateTimeDesc'),
+      icon: 'time-outline',
+    },
+    {
+      id: 'vehicle_not_owned',
+      title: t('dispute.vehicleNotOwned'),
+      description: t('dispute.vehicleNotOwnedDesc'),
+      icon: 'car-outline',
+    },
+    {
+      id: 'emergency_situation',
+      title: t('dispute.emergencySituation'),
+      description: t('dispute.emergencySituationDesc'),
+      icon: 'medical-outline',
+    },
+    {
+      id: 'signs_not_visible',
+      title: t('dispute.signsNotVisible'),
+      description: t('dispute.signsNotVisibleDesc'),
+      icon: 'eye-off-outline',
+    },
+    {
+      id: 'technical_error',
+      title: t('dispute.technicalError'),
+      description: t('dispute.technicalErrorDesc'),
+      icon: 'construct-outline',
+    },
+    {
+      id: 'other',
+      title: t('dispute.other'),
+      description: t('dispute.otherDesc'),
+      icon: 'ellipsis-horizontal-outline',
+    },
+  ];
   
   // Redux state
   const ticket = useAppSelector((state) => state.tickets.currentTicket);
@@ -130,36 +132,36 @@ export default function DisputeFormScreen() {
   useEffect(() => {
     if (error) {
       setDialogProps({
-        title: 'Error',
+        title: t('common.error'),
         message: error,
         type: 'error',
       });
       setDialogVisible(true);
     }
-  }, [error]);
+  }, [error, t]);
 
   const validateForm = () => {
     const errors: Record<string, string[]> = {};
 
     // Validate reason selection
     if (!selectedReason) {
-      errors.reason = ['Please select a dispute reason'];
+      errors.reason = [t('dispute.selectDisputeReason')];
     }
 
     // Validate custom reason if "other" is selected
     if (selectedReason === 'other') {
-      const customReasonResult = validateRequired(customReason, 'Custom reason');
+      const customReasonResult = validateRequired(customReason, t('dispute.customReason'));
       if (!customReasonResult.isValid) {
-        errors.customReason = customReasonResult.errors;
+        errors.customReason = [t('dispute.customReasonRequired')];
       }
     }
 
     // Validate description
-    const descriptionResult = validateRequired(description, 'Description');
+    const descriptionResult = validateRequired(description, t('dispute.detailedDescription'));
     if (!descriptionResult.isValid) {
-      errors.description = descriptionResult.errors;
+      errors.description = [t('dispute.descriptionRequired')];
     } else if (description.trim().length < 50) {
-      errors.description = ['Description must be at least 50 characters'];
+      errors.description = [t('dispute.descriptionTooShort')];
     }
 
     setValidationErrors(errors);
@@ -170,7 +172,7 @@ export default function DisputeFormScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission denied', 'Media library access is required to add images.');
+        Alert.alert(t('dispute.permissionDeniedTitle'), t('dispute.mediaLibraryAccessRequired'));
         return;
       }
 
@@ -193,7 +195,7 @@ export default function DisputeFormScreen() {
       }
     } catch (error) {
       console.error('Error picking images:', error);
-      Alert.alert('Error', 'Failed to add images. Please try again.');
+      Alert.alert(t('dispute.errorTitle'), t('dispute.failedToAddImages'));
     }
   };
 
@@ -216,7 +218,7 @@ export default function DisputeFormScreen() {
       }
     } catch (error) {
       console.error('Error picking documents:', error);
-      Alert.alert('Error', 'Failed to add documents. Please try again.');
+      Alert.alert(t('dispute.errorTitle'), t('dispute.failedToAddDocuments'));
     }
   };
 
@@ -231,8 +233,8 @@ export default function DisputeFormScreen() {
     const isValid = validateForm();
     if (!isValid) {
       setDialogProps({
-        title: 'Validation Error',
-        message: 'Please correct the errors and try again.',
+        title: t('dispute.validationError'),
+        message: t('dispute.correctErrorsAndTryAgain'),
         type: 'error',
       });
       setDialogVisible(true);
@@ -257,8 +259,8 @@ export default function DisputeFormScreen() {
       await dispatch(createDispute(disputeData)).unwrap();
 
       setDialogProps({
-        title: 'Dispute Submitted',
-        message: 'Your dispute has been submitted successfully. You will receive updates on its status.',
+        title: t('dispute.disputeSubmitted'),
+        message: t('dispute.disputeSubmittedMessage'),
         type: 'success',
       });
       setDialogVisible(true);
@@ -270,8 +272,8 @@ export default function DisputeFormScreen() {
 
     } catch (error: any) {
       setDialogProps({
-        title: 'Dispute Failed',
-        message: error.message || 'Failed to submit dispute. Please try again.',
+        title: t('dispute.disputeFailed'),
+        message: error.message || t('dispute.disputeFailedMessage'),
         type: 'error',
       });
       setDialogVisible(true);
@@ -279,7 +281,7 @@ export default function DisputeFormScreen() {
   };
 
   const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return 'Unknown size';
+    if (!bytes) return t('dispute.unknownSize');
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -309,7 +311,7 @@ export default function DisputeFormScreen() {
 
         {/* Ticket Info */}
         <ThemedCard className="mb-6">
-          <ThemedText weight="bold" size="lg" className="mb-4">{t('tickets.ticketInformation')}</ThemedText>
+          <ThemedText weight="bold" size="lg" className="mb-4">{t('dispute.ticketInformation')}</ThemedText>
           
           <ThemedView className="flex-row justify-between items-center mb-2">
             <ThemedText variant="tertiary" size="sm">{t('tickets.ticketNumber')}</ThemedText>
@@ -317,19 +319,19 @@ export default function DisputeFormScreen() {
           </ThemedView>
           
           <ThemedView className="flex-row justify-between items-center mb-2">
-            <ThemedText variant="tertiary" size="sm">License Plate</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('dispute.licensePlate')}</ThemedText>
             <ThemedText weight="medium">{ticket.licensePlate}</ThemedText>
           </ThemedView>
           
           <ThemedView className="flex-row justify-between items-center mb-2">
-            <ThemedText variant="tertiary" size="sm">Violation</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('dispute.violation')}</ThemedText>
             <ThemedText weight="medium">
               {ticket.infractionType?.type?.[i18n.language] || ticket.infractionType?.type?.en || ticket.violationType || 'Traffic Violation'}
             </ThemedText>
           </ThemedView>
           
           <ThemedView className="flex-row justify-between items-center">
-            <ThemedText variant="tertiary" size="sm">Fine Amount</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('dispute.fineAmount')}</ThemedText>
             <ThemedText weight="bold" style={{ color: theme === 'dark' ? '#FFA366' : '#E18743' }}>
               ${(ticket.fineAmount || 0).toFixed(2)}
             </ThemedText>
@@ -338,7 +340,7 @@ export default function DisputeFormScreen() {
 
         {/* Dispute Reason */}
         <ThemedView className="mb-6">
-          <ThemedText weight="bold" size="lg" className="mb-4">Reason for Dispute</ThemedText>
+          <ThemedText weight="bold" size="lg" className="mb-4">{t('dispute.reasonForDispute')}</ThemedText>
           
           {DISPUTE_REASONS.map((reason) => (
             <TouchableOpacity
@@ -387,7 +389,7 @@ export default function DisputeFormScreen() {
         {/* Custom Reason (if "Other" is selected) */}
         {selectedReason === 'other' && (
           <ThemedView className="mb-6">
-            <ThemedText weight="bold" className="mb-2">Custom Reason</ThemedText>
+            <ThemedText weight="bold" className="mb-2">{t('dispute.customReason')}</ThemedText>
             <ThemedInput
               value={customReason}
               onChangeText={(text) => {
@@ -396,7 +398,7 @@ export default function DisputeFormScreen() {
                   setValidationErrors(prev => ({ ...prev, customReason: [] }));
                 }
               }}
-              placeholder="Please specify your reason for disputing this ticket"
+              placeholder={t('dispute.customReasonPlaceholder')}
               multiline
               numberOfLines={2}
             />
@@ -410,10 +412,9 @@ export default function DisputeFormScreen() {
 
         {/* Description */}
         <ThemedView className="mb-6">
-          <ThemedText weight="bold" className="mb-2">Detailed Description</ThemedText>
+          <ThemedText weight="bold" className="mb-2">{t('dispute.detailedDescription')}</ThemedText>
           <ThemedText variant="tertiary" size="sm" className="mb-3">
-            Please provide a detailed explanation of why you believe this ticket should be dismissed. 
-            Include specific facts, circumstances, and any relevant information.
+            {t('dispute.descriptionInstruction')}
           </ThemedText>
           <ThemedInput
             value={description}
@@ -423,7 +424,7 @@ export default function DisputeFormScreen() {
                 setValidationErrors(prev => ({ ...prev, description: [] }));
               }
             }}
-            placeholder="Provide a detailed explanation of your dispute (minimum 50 characters)"
+            placeholder={t('dispute.descriptionPlaceholder')}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
@@ -435,7 +436,7 @@ export default function DisputeFormScreen() {
               </ThemedText>
             ) : (
               <ThemedText variant="tertiary" size="xs">
-                {description.length}/50 characters minimum
+                {t('dispute.charactersMinimum', { count: description.length })}
               </ThemedText>
             )}
           </ThemedView>
@@ -443,10 +444,9 @@ export default function DisputeFormScreen() {
 
         {/* Evidence */}
         <ThemedView className="mb-6">
-          <ThemedText weight="bold" className="mb-2">Supporting Evidence</ThemedText>
+          <ThemedText weight="bold" className="mb-2">{t('dispute.supportingEvidence')}</ThemedText>
           <ThemedText variant="tertiary" size="sm" className="mb-4">
-            Upload photos, documents, or other evidence that supports your dispute. 
-            This could include dashcam footage, witness statements, receipts, etc.
+            {t('dispute.evidenceInstruction')}
           </ThemedText>
           
           {/* Add Evidence Buttons */}
@@ -457,7 +457,7 @@ export default function DisputeFormScreen() {
               className="flex-1"
               leftIcon="camera-outline"
             >
-              Add Photos
+              {t('dispute.addPhotos')}
             </ThemedButton>
             <ThemedButton
               variant="outline"
@@ -465,7 +465,7 @@ export default function DisputeFormScreen() {
               className="flex-1"
               leftIcon="document-attach-outline"
             >
-              Add Documents
+              {t('dispute.addDocuments')}
             </ThemedButton>
           </ThemedView>
 
@@ -524,12 +524,9 @@ export default function DisputeFormScreen() {
               style={{ marginRight: 12, marginTop: 2 }}
             />
             <ThemedView className="flex-1">
-              <ThemedText weight="bold" className="mb-2">Important Notice</ThemedText>
+              <ThemedText weight="bold" className="mb-2">{t('dispute.importantNotice')}</ThemedText>
               <ThemedText size="sm">
-                • Submitting false information may result in additional penalties{'\n'}
-                • Review all information carefully before submitting{'\n'}
-                • You will receive email updates about your dispute status{'\n'}
-                • Processing typically takes 5-10 business days
+                {t('dispute.noticeContent')}
               </ThemedText>
             </ThemedView>
           </ThemedView>
@@ -543,7 +540,7 @@ export default function DisputeFormScreen() {
           className="mb-8"
           size="lg"
         >
-          {isDisputing ? 'Submitting Dispute...' : 'Submit Dispute'}
+          {isDisputing ? t('dispute.submittingDispute') : t('dispute.submitDispute')}
         </ThemedButton>
       </ScrollView>
 

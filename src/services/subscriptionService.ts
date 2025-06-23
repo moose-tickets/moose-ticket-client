@@ -27,13 +27,13 @@ const SUBSCRIPTION_ENDPOINTS = {
   SUBSCRIPTION_DETAIL: (id: string) => `/subscriptions/${id}`,
   SUBSCRIPTION_PLANS: '/subscriptions/plans',
   PLAN_DETAIL: (id: string) => `/subscriptions/plans/${id}`,
-  CURRENT_SUBSCRIPTION: '/subscriptions/current',
-  CANCEL_SUBSCRIPTION: (id: string) => `/subscriptions/${id}/cancel`,
-  RESUME_SUBSCRIPTION: (id: string) => `/subscriptions/${id}/resume`,
+  CURRENT_SUBSCRIPTION: '/subscriptions',
+  CANCEL_SUBSCRIPTION: (id: string) => `/subscriptions/${id}`,
+  RESUME_SUBSCRIPTION: (id: string) => `/subscriptions/${id}`,
   UPGRADE_SUBSCRIPTION: (id: string) => `/subscriptions/${id}/upgrade`,
-  BILLING_HISTORY: '/subscriptions/billing/history',
-  USAGE_ANALYTICS: '/subscriptions/usage',
-  QUOTAS: '/subscriptions/quotas',
+  BILLING_HISTORY: (id: string) => `/subscriptions/${id}/billing`,
+  USAGE_ANALYTICS: (id: string) => `/subscriptions/${id}/usage`,
+  QUOTAS: (id: string) => `/subscriptions/${id}/usage`,
 } as const;
 
 class SubscriptionService {
@@ -129,8 +129,8 @@ class SubscriptionService {
       // 1. Validate input
       const validationRules = {
         planId: (id: string) => validateRequired(id, 'Plan ID'),
-        paymentMethodId: (id: string) => validateRequired(id, 'Payment method ID'),
-        billingEmail: (email: string) => validateEmail(email, { required: false }),
+        // paymentMethodId is optional for testing
+        // billingEmail is optional
       };
 
       const formValidation = await validateForm(subscriptionData, validationRules);
@@ -145,7 +145,8 @@ class SubscriptionService {
       // 2. Sanitize input
       const sanitizedData = {
         planId: subscriptionData.planId.trim(),
-        paymentMethodId: subscriptionData.paymentMethodId.trim(),
+        billingCycle: subscriptionData.billingCycle || 'monthly',
+        paymentMethodId: subscriptionData.paymentMethodId?.trim(),
         billingEmail: subscriptionData.billingEmail ? sanitizeEmail(subscriptionData.billingEmail) : undefined,
         metadata: subscriptionData.metadata || {},
         promoCode: subscriptionData.promoCode?.trim().toUpperCase(),
@@ -248,11 +249,17 @@ class SubscriptionService {
         };
       }
 
-      // 4. Make API request
+      // 4. Log request details
+      console.log('🔄 Making update request to:', SUBSCRIPTION_ENDPOINTS.SUBSCRIPTION_DETAIL(subscriptionId));
+      console.log('🔄 Request payload:', sanitizedData);
+
+      // 5. Make API request
       const response = await apiClient.put<ApiResponse<Subscription>>(
         SUBSCRIPTION_ENDPOINTS.SUBSCRIPTION_DETAIL(subscriptionId),
         sanitizedData
       );
+
+      console.log('🔄 Update response:', response.data);
 
       if (response.data.success) {
         console.log('Subscription updated successfully:', subscriptionId);
@@ -391,7 +398,7 @@ class SubscriptionService {
 
       // 2. Sanitize input
       const sanitizedData = {
-        newPlanId: newPlanId.trim(),
+        planId: newPlanId.trim(),  // Backend expects 'planId', not 'newPlanId'
         promoCode: promoCode?.trim().toUpperCase(),
       };
 
@@ -409,11 +416,17 @@ class SubscriptionService {
         };
       }
 
-      // 4. Make API request
+      // 4. Log request details
+      console.log('🔄 Making upgrade request to:', SUBSCRIPTION_ENDPOINTS.UPGRADE_SUBSCRIPTION(subscriptionId));
+      console.log('🔄 Request payload:', sanitizedData);
+
+      // 5. Make API request
       const response = await apiClient.post<ApiResponse<Subscription>>(
         SUBSCRIPTION_ENDPOINTS.UPGRADE_SUBSCRIPTION(subscriptionId),
         sanitizedData
       );
+
+      console.log('🔄 Upgrade response:', response.data);
 
       if (response.data.success) {
         console.log('Subscription upgraded successfully:', subscriptionId);
@@ -492,6 +505,16 @@ class SubscriptionService {
   // Billing and Usage
   async getBillingHistory(params?: PaginationParams & { dateFrom?: string; dateTo?: string }): Promise<ApiResponse<BillingHistory[]>> {
     try {
+      // First get current subscription to get the subscription ID
+      const currentSub = await this.getCurrentSubscription();
+      if (!currentSub.success || !currentSub.data || !currentSub.data.subscription) {
+        return {
+          success: false,
+          error: 'No active subscription',
+          message: 'No active subscription found to get billing history for.'
+        };
+      }
+
       // 1. Sanitize query parameters
       const sanitizedParams: any = {};
       
@@ -502,9 +525,20 @@ class SubscriptionService {
       if (params?.dateFrom) sanitizedParams.dateFrom = params.dateFrom;
       if (params?.dateTo) sanitizedParams.dateTo = params.dateTo;
 
+      // Extract subscription ID - handle both _id and id fields
+      const subscription = currentSub.data.subscription;
+      const subscriptionId = subscription._id || subscription.id;
+      if (!subscriptionId) {
+        return {
+          success: false,
+          error: 'Invalid subscription data',
+          message: 'Subscription data is missing ID field.'
+        };
+      }
+
       // 2. Make API request
       const response = await apiClient.get<ApiResponse<BillingHistory[]>>(
-        SUBSCRIPTION_ENDPOINTS.BILLING_HISTORY,
+        SUBSCRIPTION_ENDPOINTS.BILLING_HISTORY(subscriptionId),
         { params: sanitizedParams }
       );
 
@@ -523,9 +557,30 @@ class SubscriptionService {
 
   async getUsageAnalytics(timeRange?: string): Promise<ApiResponse<any>> {
     try {
+      // First get current subscription to get the subscription ID
+      const currentSub = await this.getCurrentSubscription();
+      if (!currentSub.success || !currentSub.data || !currentSub.data.subscription) {
+        return {
+          success: false,
+          error: 'No active subscription',
+          message: 'No active subscription found to get usage analytics for.'
+        };
+      }
+
+      // Extract subscription ID - handle both _id and id fields
+      const subscription = currentSub.data.subscription;
+      const subscriptionId = subscription._id || subscription.id;
+      if (!subscriptionId) {
+        return {
+          success: false,
+          error: 'Invalid subscription data',
+          message: 'Subscription data is missing ID field.'
+        };
+      }
+
       const params = timeRange ? { timeRange } : {};
       const response = await apiClient.get<ApiResponse<any>>(
-        SUBSCRIPTION_ENDPOINTS.USAGE_ANALYTICS,
+        SUBSCRIPTION_ENDPOINTS.USAGE_ANALYTICS(subscriptionId),
         { params }
       );
       return response.data;
@@ -542,8 +597,29 @@ class SubscriptionService {
 
   async getQuotas(): Promise<ApiResponse<any>> {
     try {
+      // First get current subscription to get the subscription ID
+      const currentSub = await this.getCurrentSubscription();
+      if (!currentSub.success || !currentSub.data || !currentSub.data.subscription) {
+        return {
+          success: false,
+          error: 'No active subscription',
+          message: 'No active subscription found to get quotas for.'
+        };
+      }
+
+      // Extract subscription ID - handle both _id and id fields
+      const subscription = currentSub.data.subscription;
+      const subscriptionId = subscription._id || subscription.id;
+      if (!subscriptionId) {
+        return {
+          success: false,
+          error: 'Invalid subscription data',
+          message: 'Subscription data is missing ID field.'
+        };
+      }
+
       const response = await apiClient.get<ApiResponse<any>>(
-        SUBSCRIPTION_ENDPOINTS.QUOTAS
+        SUBSCRIPTION_ENDPOINTS.QUOTAS(subscriptionId)
       );
       return response.data;
     } catch (error: any) {

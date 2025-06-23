@@ -94,10 +94,18 @@ export const API_ENDPOINTS = {
   // Subscriptions
   subscriptions: {
     plans: '/api/subscriptions/plans',
-    current: '/api/subscriptions/current',
-    subscribe: '/api/subscriptions/subscribe',
-    cancel: '/api/subscriptions/cancel',
-    history: '/api/subscriptions/history',
+    planDetail: (id: string) => `/api/subscriptions/plans/${id}`,
+    current: '/api/subscriptions',
+    create: '/api/subscriptions',
+    update: (id: string) => `/api/subscriptions/${id}`,
+    cancel: (id: string) => `/api/subscriptions/${id}`,
+    resume: (id: string) => `/api/subscriptions/${id}`,
+    upgrade: (id: string) => `/api/subscriptions/${id}/upgrade`,
+    billingHistory: (id: string) => `/api/subscriptions/${id}/billing`,
+    quotas: (id: string) => `/api/subscriptions/${id}/usage`,
+    validatePromo: '/api/subscriptions/validate-promo',
+    analytics: '/api/subscriptions/analytics',
+    usageAnalytics: (id: string) => `/api/subscriptions/${id}/usage`,
   },
   
   // Infraction Types

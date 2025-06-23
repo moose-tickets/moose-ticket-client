@@ -18,6 +18,7 @@ import AddressForm from '../../components/Address';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { 
   updatePaymentMethod, 
@@ -29,6 +30,7 @@ export default function EditCard() {
   const navigation = useNavigation();
   const route = useRoute();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { cardId } = route.params as { cardId: string };
 
@@ -76,13 +78,13 @@ export default function EditCard() {
   // Handle errors
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      Alert.alert(t('common.error'), error);
     }
   }, [error]);
 
   const handleUpdateCard = async () => {
     if (!cardName || !expiry) {
-      Alert.alert('Validation Error', 'Please fill in all required fields');
+      Alert.alert(t('auth.validationFailed'), t('payments.fillRequiredFields'));
       return;
     }
 
@@ -110,7 +112,7 @@ export default function EditCard() {
 
       setDialogVisible(true);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update payment method');
+      Alert.alert(t('common.error'), error.message || t('payments.addPaymentMethodFailed'));
     }
   };
 

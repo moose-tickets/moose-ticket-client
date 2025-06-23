@@ -1,17 +1,26 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Alert } from 'react-native';
 import { useSettingsStackNavigation } from '../../navigation/hooks';
 import AppLayout from '../../wrappers/layout';
 import GoBackHeader from '../../components/GoBackHeader';
 import { ThemedView, ThemedText, ThemedCard, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchSubscriptionPlans, setSelectedPlan } from '../../store/slices/subscriptionSlice';
+import { fetchSubscriptionPlans, setSelectedPlan, updateSubscription, upgradeSubscription } from '../../store/slices/subscriptionSlice';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../locales';
 
 export default function SubscriptionPlans() {
   const navigation = useSettingsStackNavigation();
   const { theme } = useTheme();
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
+  const currentLanguage = i18n.language as 'en' | 'fr' | 'ar' | 'es';
+
+  // Helper function to get localized text
+  const getLocalizedText = (textObj: { en: string; fr: string; ar: string; es?: string }) => {
+    return textObj[currentLanguage] || textObj.en;
+  };
 
   // Redux state
   const plans = useAppSelector(state => state.subscriptions.plans);
@@ -27,13 +36,37 @@ export default function SubscriptionPlans() {
   // Handle errors
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      Alert.alert(t('common.error'), error);
     }
   }, [error]);
 
-  const handleSelectPlan = (plan: any) => {
+  const handleSelectPlan = async (plan: any) => {
+    console.log('🔄 handleSelectPlan called with plan:', plan._id);
+    console.log('🔄 Current subscription planId:', currentSubscription?.planId);
+    console.log('🔄 Current subscription plan._id:', currentSubscription?.plan?._id);
+    console.log('🔄 Current subscription _id:', currentSubscription?._id);
+    
+    // Get the current plan ID - could be from planId field or plan._id
+    const currentPlanId = currentSubscription?.planId || currentSubscription?.plan?._id;
+    
+    if (currentSubscription && currentPlanId === plan._id) {
+      Alert.alert(t('common.info'), t('subscription.alreadyOnThisPlan'));
+      return;
+    }
+    
+    // Always go to confirmation screen for both new subscriptions and plan changes
     dispatch(setSelectedPlan(plan));
     navigation.navigate('ConfirmSubscription', { planId: plan._id });
+  };
+  
+  const isUpgrade = (newPlan: any) => {
+    if (!currentSubscription) return false;
+    const currentPlanId = currentSubscription.planId || currentSubscription.plan?._id;
+    const currentPlan = plans.find(p => p._id === currentPlanId);
+    if (!currentPlan) return false;
+    
+    const tierOrder = { basic: 1, standard: 2, premium: 3, enterprise: 4 };
+    return tierOrder[newPlan.tier] > tierOrder[currentPlan.tier];
   };
 
   const formatPrice = (price: any) => {
@@ -44,15 +77,16 @@ export default function SubscriptionPlans() {
   };
 
   const isCurrentPlan = (planId: string) => {
-    return currentSubscription?.planId === planId;
+    const currentPlanId = currentSubscription?.planId || currentSubscription?.plan?._id;
+    return currentPlanId === planId;
   };
 
   if (loading.plans && plans.length === 0) {
     return (
       <AppLayout scrollable={false}>
-        <GoBackHeader screenTitle='Choose a Plan' />
+        <GoBackHeader screenTitle={t('subscription.choosePlan')} />
         <ThemedView className='flex-1 justify-center items-center'>
-          <ThemedText>Loading plans...</ThemedText>
+          <ThemedText>{t('subscription.loadingPlans')}</ThemedText>
         </ThemedView>
       </AppLayout>
     );
@@ -61,12 +95,12 @@ export default function SubscriptionPlans() {
   return (
     <AppLayout scrollable={false}>
       <ThemedScrollView className='flex-1 px-5'>
-        <GoBackHeader screenTitle='Choose a Plan' />
+        <GoBackHeader screenTitle={t('subscription.choosePlan')} />
         <ThemedText variant='tertiary' className='text-center mb-6'>
-          Unlock premium features and real-time alerts
+          {t('subscription.unlockPremiumFeatures')}
         </ThemedText>
 
-        {plans.map((plan, idx) => {
+        {plans && Array.isArray(plans) && plans.map((plan, idx) => {
           const isPopular = plan.isPopular;
           const isCurrent = isCurrentPlan(plan._id);
           
@@ -90,7 +124,7 @@ export default function SubscriptionPlans() {
                   style={{ backgroundColor: '#10B981' }}
                 >
                   <ThemedText size='xs' weight='bold' style={{ color: 'white' }}>
-                    MOST POPULAR
+                    {t('subscription.mostPopular')}
                   </ThemedText>
                 </ThemedView>
               )}
@@ -102,38 +136,66 @@ export default function SubscriptionPlans() {
                   style={{ backgroundColor: '#3B82F6' }}
                 >
                   <ThemedText size='xs' weight='bold' style={{ color: 'white' }}>
-                    CURRENT PLAN
+                    {t('subscription.currentPlanBadge')}
                   </ThemedText>
                 </ThemedView>
               )}
 
               <ThemedView className='flex-row justify-between items-center mb-2 p-2' variant='secondary'>
-                <ThemedText weight='bold' size='lg'>{plan.name}</ThemedText>
+                <ThemedText weight='bold' size='lg'>
+                  {plan.name && typeof plan.name === 'object' 
+                    ? getLocalizedText(plan.name)
+                    : plan.name || 'N/A'}
+                </ThemedText>
                 <ThemedText weight='semibold'>{formatPrice(plan.price)}</ThemedText>
               </ThemedView>
               
               <ThemedText variant='secondary' className='mb-1 px-3'>
-                {plan.features.join('\n')}
+                {plan.features?.map(feature => 
+                  typeof feature === 'object' ? getLocalizedText(feature) : feature
+                ).join('\n')}
               </ThemedText>
               
               <ThemedText className='mb-4 px-3' variant='tertiary' size='sm'>
-                {plan.description}
+                {plan.description && typeof plan.description === 'object' 
+                  ? getLocalizedText(plan.description)
+                  : plan.description || ''}
               </ThemedText>
               
               <ThemedButton
                 variant={isCurrent ? 'secondary' : 'primary'}
                 size='lg'
                 onPress={() => handleSelectPlan(plan)}
-                disabled={isCurrent || loading.update}
+                disabled={isCurrent || loading.update || loading.upgrade}
               >
-                {isCurrent ? 'Current Plan' : `Select ${plan.name}`}
+                {isCurrent 
+                  ? t('subscription.currentPlan') 
+                  : currentSubscription
+                    ? (isUpgrade(plan) ? t('subscription.upgradePlan') : t('subscription.changePlan'))
+                    : t('subscription.selectPlanButton', { 
+                        planName: plan.name && typeof plan.name === 'object' 
+                          ? getLocalizedText(plan.name)
+                          : plan.name || 'Plan'
+                      })
+                }
               </ThemedButton>
             </ThemedCard>
           );
         })}
 
+        {(!plans || !Array.isArray(plans) || plans.length === 0) && !loading.plans && (
+          <ThemedView className='flex-1 justify-center items-center py-12'>
+            <ThemedText size='lg' weight='semibold' className='mb-2'>
+              {t('subscription.noPlansAvailable')}
+            </ThemedText>
+            <ThemedText variant='secondary' className='text-center'>
+              {t('subscription.pleaseCheckBackLater')}
+            </ThemedText>
+          </ThemedView>
+        )}
+
         <ThemedText variant='tertiary' size='sm' className='text-center'>
-          Cancel anytime. Payments are secure.
+          {t('subscription.cancelAnytime')}
         </ThemedText>
       </ThemedScrollView>
     </AppLayout>

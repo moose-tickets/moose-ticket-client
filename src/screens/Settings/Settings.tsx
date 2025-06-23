@@ -250,7 +250,7 @@ export default function SettingsScreen() {
       {/* Theme Selector Modal */}
       <Dialog
         visible={showThemeSelector}
-        title="Choose Theme"
+        title={t('settings.chooseTheme')}
         onClose={() => setShowThemeSelector(false)}
         messageComponent={
           <ThemeSelector onClose={() => setShowThemeSelector(false)} />

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../wrappers/ThemeProvider";
 import { ThemeMode } from "../utils/color-theme";
 
@@ -16,6 +17,7 @@ export const ThemeToggle = ({
   variant = "toggle" 
 }: ThemeToggleProps) => {
   const { theme, themeMode, setThemeMode, toggleTheme, forceStatusBarUpdate } = useTheme();
+  const { t } = useTranslation();
 
   const iconSizes = {
     sm: 16,
@@ -91,7 +93,7 @@ export const ThemeToggle = ({
       />
       {showLabel && (
         <Text className="text-text-primary font-medium">
-          {theme === "dark" ? "Dark Mode" : "Light Mode"}
+          {theme === "dark" ? t('settings.darkMode') : t('settings.lightMode')}
         </Text>
       )}
     </TouchableOpacity>
@@ -123,24 +125,25 @@ export const QuickThemeToggle = () => {
 // Theme selection modal/sheet component
 export const ThemeSelector = ({ onClose }: { onClose?: () => void }) => {
   const { theme, themeMode, setThemeMode, forceStatusBarUpdate } = useTheme();
+  const { t } = useTranslation();
 
   const themeOptions = [
     {
       mode: "light" as ThemeMode,
-      label: "Light",
-      description: "Always use light theme",
+      label: t('settings.lightMode'),
+      description: t('settings.alwaysLightTheme'),
       icon: "sunny",
     },
     {
       mode: "dark" as ThemeMode,
-      label: "Dark", 
-      description: "Always use dark theme",
+      label: t('settings.darkMode'), 
+      description: t('settings.alwaysDarkTheme'),
       icon: "moon",
     },
     {
       mode: "auto" as ThemeMode,
-      label: "System",
-      description: "Follow system preference",
+      label: t('settings.system'),
+      description: t('settings.followSystemPreference'),
       icon: "phone-portrait",
     },
   ];
@@ -155,7 +158,7 @@ export const ThemeSelector = ({ onClose }: { onClose?: () => void }) => {
   return (
     <View className="bg-background rounded-xl p-4 border border-border">
       <Text className="text-lg font-bold text-text-primary mb-4">
-        Choose Theme
+        {t('settings.chooseTheme')}
       </Text>
       
       {themeOptions.map((option) => (

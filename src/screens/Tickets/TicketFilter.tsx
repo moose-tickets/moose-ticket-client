@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from '../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 import { setFilters } from '../../store/slices/ticketSlice';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedCard, ThemedScrollView } from '../../components/ThemedComponents';
 import AppLayout from '../../wrappers/layout';
@@ -31,6 +32,7 @@ interface DatePickerProps {
 const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 'Select Date' }) => {
   const [showPicker, setShowPicker] = useState(false);
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowPicker(false);
@@ -67,7 +69,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
           <ThemedView className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
             <ThemedCard className="p-4 m-4">
               <ThemedView className="flex-row justify-between items-center mb-4">
-                <ThemedText size="lg" weight="bold">Select Date</ThemedText>
+                <ThemedText size="lg" weight="bold">{t('tickets.selectDate')}</ThemedText>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
                   <Ionicons name="close" size={24} color={theme === 'dark' ? '#FFFFFF' : '#1E1E1E'} />
                 </TouchableOpacity>
@@ -93,7 +95,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
                     onPress={() => setShowPicker(false)}
                     className="flex-1 mr-2"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </ThemedButton>
                   <ThemedButton
                     variant="primary"
@@ -103,7 +105,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
                     }}
                     className="flex-1"
                   >
-                    Done
+                    {t('common.done')}
                   </ThemedButton>
                 </ThemedView>
               </ThemedView>
@@ -115,7 +117,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
   );
 };
 
-const licenses = ['All', 'Car', 'Truck', 'Motorcycle', 'SUV'];
+// Vehicle types will be translated inside component
 
 const cities = [
   { rank: 0, city: "All", province: "" },
@@ -141,11 +143,15 @@ const cities = [
   { rank: 20, city: "Regina", province: "Saskatchewan" }
 ];
 
-const statuses = ['All', 'Outstanding', 'Paid', 'Disputed'];
+// Status options will be translated inside component
 
 export default function TicketFilter({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const dispatch = useDispatch();
   const { theme } = useTheme();
+  const { t } = useTranslation();
+  
+  const licenses = [t('tickets.all'), t('tickets.car'), t('tickets.truck'), t('tickets.motorcycle'), t('tickets.suv')];
+  const statuses = [t('tickets.all'), t('tickets.outstanding'), t('tickets.paid'), t('tickets.disputed')];
   const [license, setLicense] = useState('All');
   const [status, setStatus] = useState('All');
   const [city, setCity] = useState('Toronto');
@@ -172,7 +178,7 @@ export default function TicketFilter({ visible, onClose }: { visible: boolean; o
         <AppLayout scrollable={false}>
             {/* Header */}
             <ThemedView className="flex-row justify-between items-center mb-4 px-6">
-              <ThemedText size="lg" weight="bold">Filter Tickets</ThemedText>
+              <ThemedText size="lg" weight="bold">{t('tickets.filterTickets')}</ThemedText>
               <TouchableOpacity onPress={onClose}>
                 <Ionicons name="close" size={24} color={theme === 'dark' ? '#FFFFFF' : '#1E1E1E'} />
               </TouchableOpacity>
@@ -182,7 +188,7 @@ export default function TicketFilter({ visible, onClose }: { visible: boolean; o
 
             <ThemedScrollView className=''>
               <ThemedView className="mb-4">
-                <ThemedText size="sm" variant="secondary" className="mb-2">License Plate</ThemedText>
+                <ThemedText size="sm" variant="secondary" className="mb-2">{t('tickets.licensePlate')}</ThemedText>
                 <DropdownSearch
                   data={licenses}
                   selected={license}
@@ -192,12 +198,12 @@ export default function TicketFilter({ visible, onClose }: { visible: boolean; o
               </ThemedView>
               
               <ThemedView className="mb-4">
-                <ThemedText size="sm" variant="secondary" className="mb-2">Infraction Type</ThemedText>
+                <ThemedText size="sm" variant="secondary" className="mb-2">{t('tickets.infractionType')}</ThemedText>
                 <InfractionTypeSelector onSelect={setInfractionType} selectedInfractionType={infractionType} showAmount={false}/>
               </ThemedView>
 
               <ThemedView className="mb-4">
-                <ThemedText size="sm" variant="secondary" className="mb-2">Ticket Status</ThemedText>
+                <ThemedText size="sm" variant="secondary" className="mb-2">{t('tickets.ticketStatus')}</ThemedText>
                 <DropdownSearch
                   data={statuses}
                   selected={status}
@@ -206,7 +212,7 @@ export default function TicketFilter({ visible, onClose }: { visible: boolean; o
               </ThemedView>
 
               <ThemedView className="mb-4">
-                <ThemedText size="sm" variant="secondary" className="mb-2">City</ThemedText>
+                <ThemedText size="sm" variant="secondary" className="mb-2">{t('tickets.city')}</ThemedText>
                 <DropdownSearch
                   data={cities.map(c => c.city)}
                   selected={city}
@@ -216,13 +222,13 @@ export default function TicketFilter({ visible, onClose }: { visible: boolean; o
               </ThemedView>
 
               <ThemedView className="mb-4">
-                <ThemedText size="sm" variant="secondary" className="mb-2">Start Date</ThemedText>
-                <DatePicker value={startDate} onChange={setStartDate} />
+                <ThemedText size="sm" variant="secondary" className="mb-2">{t('tickets.startDate')}</ThemedText>
+                <DatePicker value={startDate} onChange={setStartDate} placeholder={t('tickets.selectDate')} />
               </ThemedView>
 
               <ThemedView className="mb-4">
-                <ThemedText size="sm" variant="secondary" className="mb-2">End Date</ThemedText>
-                <DatePicker value={endDate} onChange={setEndDate} />
+                <ThemedText size="sm" variant="secondary" className="mb-2">{t('tickets.endDate')}</ThemedText>
+                <DatePicker value={endDate} onChange={setEndDate} placeholder={t('tickets.selectDate')} />
               </ThemedView>
             </ThemedScrollView>
 
@@ -234,7 +240,7 @@ export default function TicketFilter({ visible, onClose }: { visible: boolean; o
                 onPress={handleApply}
                 className="mt-6"
               >
-                Apply Filters
+                {t('tickets.applyFilters')}
               </ThemedButton>
 
             </ThemedView>

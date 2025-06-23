@@ -17,11 +17,13 @@ import GoBackHeader from '../../../components/GoBackHeader';
 import Dialog from '../../../components/Dialog';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput, ThemedScrollView } from '../../../components/ThemedComponents';
 import { useTheme } from '../../../wrappers/ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 export default function EditProfile() {
   const navigation = useSettingsStackNavigation();
   const route = useRoute<RouteProp<SettingsStackParamList, 'EditProfile'>>();
   const { theme, presets } = useTheme();
+  const { t } = useTranslation();
   const userId = route.params.userId;
   const [name, setName] = useState('Jane Doe');
   const [email, setEmail] = useState('jane.doe@example.com');
@@ -49,7 +51,7 @@ export default function EditProfile() {
 
   const handleSave = () => {
     if (!name || !email || !phone) {
-      alert('All fields are required');
+      alert(t('profile.fillRequiredFields'));
       return;
     }
 
@@ -57,9 +59,8 @@ export default function EditProfile() {
     console.log('Saving profile:', profile);
 
     setDialogProps({
-      title: 'Profile Updated',
-      message:
-        'Your profile has been updated successfully',
+      title: t('common.success'),
+      message: t('auth.accountCreatedSuccess'),
       type: 'success',
     });
     setDialogVisible(true);
@@ -69,7 +70,7 @@ export default function EditProfile() {
     <AppLayout scrollable={false}>
       <ThemedScrollView className='flex-1  px-5'>
         {/* Header */}
-        <GoBackHeader screenTitle={'Edit Profile'} />
+        <GoBackHeader screenTitle={t('navigation.profile')} />
         {/* Avatar */}
         <ThemedView className='items-center mt-2 mb-6 relative'>
           {avatarUri ? (
@@ -96,20 +97,20 @@ export default function EditProfile() {
         <ThemedView className='space-y-4'>
           <ThemedInput
             className='mb-2'
-            placeholder='Full Name'
+            placeholder={t('profile.fullName')}
             value={name}
             onChangeText={setName}
           />
           <ThemedInput
             className='mb-2'
-            placeholder='Email Address'
+            placeholder={t('auth.email')}
             keyboardType='email-address'
             value={email}
             onChangeText={setEmail}
           />
           <ThemedInput
             className='mb-2'
-            placeholder='Phone Number'
+            placeholder={t('auth.phoneNumber')}
             keyboardType='phone-pad'
             value={phone}
             onChangeText={setPhone}
@@ -122,7 +123,7 @@ export default function EditProfile() {
           size='lg'
           className='mt-8'
         >
-          Update Profile
+          {t('common.save')}
         </ThemedButton>
 
         <ThemedButton
@@ -130,7 +131,7 @@ export default function EditProfile() {
           variant='ghost'
           className='mt-4'
         >
-          Cancel
+          {t('common.cancel')}
         </ThemedButton>
       </ThemedScrollView>
       <Dialog
