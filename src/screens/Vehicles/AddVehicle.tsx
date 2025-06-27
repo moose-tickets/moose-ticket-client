@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import Dialog from '../../components/Dialog';
 import { ThemedView, ThemedText, ThemedInput, ThemedButton, ThemedScrollView } from '../../components/ThemedComponents';
 import { useTheme } from '../../wrappers/ThemeProvider';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { createVehicle, updateVehicle, selectVehicleLoading } from '../../store/slices/vehicleSlice';
+import { createVehicle, updateVehicle, fetchVehicle, selectVehicleLoading, selectCurrentVehicle } from '../../store/slices/vehicleSlice';
 
 export default function AddVehicle() {
   const navigation = useNavigation();
@@ -31,6 +31,25 @@ export default function AddVehicle() {
   
   // Redux state
   const isLoading = useAppSelector(selectVehicleLoading);
+  const currentVehicle = useAppSelector(selectCurrentVehicle);
+  
+  // Load vehicle data if editing
+  useEffect(() => {
+    if (vehicleId) {
+      dispatch(fetchVehicle(vehicleId));
+    }
+  }, [vehicleId, dispatch]);
+  
+  // Populate form when vehicle data loads
+  useEffect(() => {
+    if (currentVehicle && vehicleId) {
+      setLicensePlate(currentVehicle.licensePlate || '');
+      setMake(currentVehicle.make || '');
+      setYear(currentVehicle.year?.toString() || '');
+      setModel(currentVehicle.model || '');
+      setColor(currentVehicle.color || '');
+    }
+  }, [currentVehicle, vehicleId]);
   
   // Form state
   const [licensePlate, setLicensePlate] = useState('');
@@ -53,15 +72,16 @@ export default function AddVehicle() {
 
     const vehicleData = { 
       licensePlate: licensePlate.toUpperCase(), 
-      make, 
+      make: make.trim(), 
       year: parseInt(year), 
-      model, 
-      color: color || undefined 
+      model: model.trim(), 
+      color: color.trim() || undefined,
+      state: 'ON' // Default state - could be made configurable
     };
 
     try {
       if (vehicleId) {
-        await dispatch(updateVehicle({ vehicleId, ...vehicleData })).unwrap();
+        await dispatch(updateVehicle({ vehicleId, updates: vehicleData })).unwrap();
         setDialogProps({
           title: t('vehicles.vehicleUpdated'),
           message: t('vehicles.vehicleUpdatedSuccess'),

@@ -13,6 +13,7 @@ import { ThemedView, ThemedText, ThemedButton, ThemedInput } from "../../compone
 import AppLayout from "../../wrappers/layout";
 import Header from "../../components/Header";
 import GoBackHeader from "../../components/GoBackHeader";
+import authService from "../../services/authService";
 
 export default function ChangePassword() {
   const navigation = useSettingsStackNavigation();
@@ -25,8 +26,9 @@ export default function ChangePassword() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!current || !newPassword || !confirm) {
       return Alert.alert(t('common.error'), t('profile.fillRequiredFields'));
     }
@@ -36,7 +38,35 @@ export default function ChangePassword() {
     if (newPassword !== confirm) {
       return Alert.alert(t('common.error'), t('validation.passwordsDoNotMatch'));
     }
-    Alert.alert(t('common.success'), t('settings.passwordUpdated'));
+
+    setLoading(true);
+    try {
+      const result = await authService.changePassword({
+        currentPassword: current,
+        newPassword: newPassword,
+        confirmPassword: confirm,
+      });
+
+      if (result.success) {
+        Alert.alert(t('common.success'), t('settings.passwordUpdated'), [
+          {
+            text: t('common.ok'),
+            onPress: () => navigation.goBack(),
+          },
+        ]);
+        // Clear form
+        setCurrent("");
+        setNewPassword("");
+        setConfirm("");
+      } else {
+        Alert.alert(t('common.error'), result.message || t('common.errorOccurred'));
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      Alert.alert(t('common.error'), t('common.errorOccurred'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const PasswordInput = ({
@@ -115,9 +145,10 @@ export default function ChangePassword() {
           variant="primary"
           size="lg"
           onPress={handleSave}
+          disabled={loading}
           className="mt-2 mb-6"
         >
-          {t('settings.saveChanges')}
+          {loading ? t('common.saving') : t('settings.saveChanges')}
         </ThemedButton>
 
         <TouchableOpacity onPress={() => navigation.navigate('SettingsHome')}>

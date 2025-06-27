@@ -556,7 +556,21 @@
     "editAddress": "تعديل العنوان",
     "updateAddress": "تحديث العنوان",
     "saveAddress": "حفظ العنوان",
-    "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة."
+    "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة.",
+    "noUserData": "لا توجد بيانات مستخدم متاحة",
+    "addressUpdated": "تم تحديث العنوان بنجاح",
+    "addressCreated": "تم إنشاء العنوان بنجاح",
+    "addressSaveError": "فشل في حفظ العنوان. يرجى المحاولة مرة أخرى.",
+    "addressType": "نوع العنوان",
+    "setAsDefault": "تعيين كعنوان افتراضي",
+    "provinceExample": "مثال: ON",
+    "countryExample": "مثال: كندا",
+    "addressType": {
+      "home": "المنزل",
+      "work": "العمل",
+      "billing": "الفواتير",
+      "other": "أخرى"
+    }
   },
     "help": {
       "howToPayTicket": "كيف أدفع مخالفة؟",

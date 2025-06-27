@@ -11,6 +11,7 @@ import { useTheme } from "../../wrappers/ThemeProvider";
 import useStatusBarFix from '../../hooks/useStatusBarFix';
 import { ThemedView, ThemedText, ThemedButton, ThemedInput } from "../../components/ThemedComponents";
 import AppLayout from "../../wrappers/layout";
+import authService from "../../services/authService";
 
 export default function ForgotPassword() {
   const navigation = useAuthStackNavigation();
@@ -22,7 +23,7 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleReset() {
+  async function handleReset() {
     if (!email.trim()) {
       Alert.alert("Error", "Please enter your email.");
       return;
@@ -34,11 +35,25 @@ export default function ForgotPassword() {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const result = await authService.forgotPassword(email.trim());
+      
+      if (result.success) {
+        Alert.alert("Success", "Password reset link sent to your email.", [
+          {
+            text: "OK",
+            onPress: () => navigation.navigate("SignIn"),
+          },
+        ]);
+      } else {
+        Alert.alert("Error", result.message || "Failed to send reset email.");
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      Alert.alert("Error", "An error occurred. Please try again.");
+    } finally {
       setLoading(false);
-      Alert.alert("Success", "Password reset link sent.");
-      navigation.navigate("SignIn");
-    }, 1500);
+    }
   }
 
   return (

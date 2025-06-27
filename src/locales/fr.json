@@ -599,7 +599,21 @@
     "editAddress": "Modifier l'adresse",
     "updateAddress": "Mettre à jour l'adresse",
     "saveAddress": "Enregistrer l'adresse",
-    "fillRequiredFields": "Veuillez remplir tous les champs obligatoires."
+    "fillRequiredFields": "Veuillez remplir tous les champs obligatoires.",
+    "noUserData": "Aucune donnée utilisateur disponible",
+    "addressUpdated": "Adresse mise à jour avec succès",
+    "addressCreated": "Adresse créée avec succès",
+    "addressSaveError": "Impossible de sauvegarder l'adresse. Veuillez réessayer.",
+    "addressType": "Type d'adresse",
+    "setAsDefault": "Définir comme adresse par défaut",
+    "provinceExample": "ex. ON",
+    "countryExample": "ex. Canada",
+    "addressType": {
+      "home": "Domicile",
+      "work": "Travail",
+      "billing": "Facturation",
+      "other": "Autre"
+    }
   },
     "help": {
       "howToPayTicket": "Comment payer une contravention?",

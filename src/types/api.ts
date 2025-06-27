@@ -118,8 +118,8 @@ export interface UpdatePreferencesRequest {
   timezone?: string;
 }
 
-// Address Types
-export interface Address {
+// Payment Address Types (for billing/shipping)
+export interface PaymentAddress {
   id: string;
   fullName: string;
   address: string;
@@ -131,7 +131,7 @@ export interface Address {
   type: 'billing' | 'shipping';
 }
 
-export interface CreateAddressRequest {
+export interface CreatePaymentAddressRequest {
   fullName: string;
   address: string;
   city: string;
@@ -150,7 +150,7 @@ export interface PaymentMethod {
   cardBrand?: string;
   cardExpiry?: string;
   isDefault: boolean;
-  billingAddress?: Address;
+  billingAddress?: PaymentAddress;
   createdAt: string;
 }
 
@@ -160,7 +160,7 @@ export interface CreatePaymentMethodRequest {
   cardExpiry: string;
   cardCvv: string;
   cardholderName: string;
-  billingAddress: CreateAddressRequest;
+  billingAddress: CreatePaymentAddressRequest;
   isDefault?: boolean;
 }
 
@@ -331,6 +331,58 @@ export interface UpdateVehicleRequest {
   color?: string;
   state?: string;
   isDefault?: boolean;
+}
+
+// Address Types
+export interface Address {
+  id: string;
+  type: 'home' | 'work' | 'billing' | 'other';
+  isDefault: boolean;
+  street: string;
+  apartment?: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  landmark?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAddressRequest {
+  type: 'home' | 'work' | 'billing' | 'other';
+  isDefault?: boolean;
+  street: string;
+  apartment?: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  landmark?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface UpdateAddressRequest {
+  type?: 'home' | 'work' | 'billing' | 'other';
+  isDefault?: boolean;
+  street?: string;
+  apartment?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  landmark?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 // Notification Types

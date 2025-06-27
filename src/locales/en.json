@@ -622,7 +622,21 @@
     "editAddress": "Edit Address",
     "updateAddress": "Update Address",
     "saveAddress": "Save Address",
-    "fillRequiredFields": "Please fill all required fields."
+    "fillRequiredFields": "Please fill all required fields.",
+    "noUserData": "No user data available",
+    "addressUpdated": "Address updated successfully",
+    "addressCreated": "Address created successfully",
+    "addressSaveError": "Failed to save address. Please try again.",
+    "addressType": "Address Type",
+    "setAsDefault": "Set as default address",
+    "provinceExample": "e.g., ON",
+    "countryExample": "e.g., Canada",
+    "addressType": {
+      "home": "Home",
+      "work": "Work",
+      "billing": "Billing",
+      "other": "Other"
+    }
   },
   "help": {
     "howToPayTicket": "How do I pay a ticket?",
